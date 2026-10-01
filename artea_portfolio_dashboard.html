@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Artea | E-commerce Growth & Promotion Analytics</title>
+<meta name="description" content="Reanalysis of an educational e-commerce coupon experiment: metric definitions, experiment inference, segment tests, profitability scenarios, and a proposed follow-up test.">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6f6d68;
+  --grid:#e1e0d9;--axis:#c3c2b7;--line:rgba(11,11,11,.12);
+  --s1:#2a78d6;--s2:#eb6834;--neg:#e34948;
+  --hl:rgba(42,120,214,.09);--hover:rgba(11,11,11,.045);
+  --c-obs:#2a78d6;--c-unc:#4a3aa7;--c-asm:#c98500;--c-prop:#1baf7a;
+  --pos-tint:42,120,214;--neg-tint:227,73,72;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --page:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#a8a79f;
+    --grid:#2c2c2a;--axis:#4a4a46;--line:rgba(255,255,255,.12);
+    --s1:#3987e5;--s2:#d95926;--neg:#e66767;
+    --hl:rgba(57,135,229,.16);--hover:rgba(255,255,255,.06);
+    --c-obs:#3987e5;--c-unc:#9085e9;--c-asm:#c98500;--c-prop:#199e70;
+    --pos-tint:57,135,229;--neg-tint:230,103,103;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+a{color:inherit}
+h1,h2,h3,h4{line-height:1.2;margin:0}
+h1{font-size:clamp(28px,4.4vw,44px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:clamp(22px,2.8vw,28px);font-weight:700;letter-spacing:-.005em}
+h3{font-size:17px;font-weight:650}
+h4{font-size:14px;font-weight:650;color:var(--ink2)}
+p{margin:0 0 12px}
+.lead{color:var(--ink2);max-width:76ch;font-size:17px}
+.small{font-size:13px;color:var(--ink2)}
+.muted{color:var(--muted)}
+.src{font-size:12.5px;color:var(--muted);margin-top:14px}
+.src code,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+
+/* header + nav */
+header.top{padding:48px 0 28px}
+.eyebrow{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:600;margin-bottom:12px}
+.question{font-size:clamp(18px,2.2vw,22px);max-width:60ch;margin:16px 0 14px;color:var(--ink)}
+.scope{max-width:78ch;color:var(--ink2);margin-bottom:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--ink2);background:var(--surface);white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+nav.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.nav .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px}
+nav.nav a{padding:6px 12px;border-radius:8px;font-size:14px;color:var(--ink2);text-decoration:none;white-space:nowrap}
+nav.nav a:hover{background:var(--hover);color:var(--ink)}
+
+/* sections */
+section.block{padding:56px 0 4px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-bottom:10px}
+.sec-no{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card.tight{padding:14px 16px}
+.g2,.g3,.g4{display:grid;gap:16px}
+.g2>*,.g3>*,.g4>*{min-width:0}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.stack>*+*{margin-top:16px}
+.mt{margin-top:20px}.mt2{margin-top:32px}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}}
+@media (max-width:640px){.wrap{padding:0 16px}.g2,.g4{grid-template-columns:1fr}section.block{padding-top:44px}}
+
+/* summary */
+.q-card h3{margin-bottom:6px;color:var(--ink2);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+.q-card p{margin:0}
+.verdict{border-left:4px solid var(--s1);background:var(--surface);border-radius:0 12px 12px 0;padding:18px 22px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.verdict .big{font-size:clamp(19px,2.4vw,24px);font-weight:650;line-height:1.35;margin-bottom:8px}
+.tile .lab{font-size:13px;color:var(--ink2);margin-bottom:6px}
+.tile .val{font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.tile .sub{font-size:13px;color:var(--ink2);margin-top:8px}
+.tile .tg{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+
+/* evidence legend */
+.legend-row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:13px;color:var(--ink2);margin-top:18px}
+.legend-row b{font-weight:600;color:var(--ink)}
+
+/* tables */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+#tbl-seg th,#tbl-seg td{padding:8px 7px;font-size:13.5px}
+#tbl-seg th{font-size:12.5px;white-space:normal;vertical-align:bottom}
+#tbl-profile td,#tbl-profile th{white-space:nowrap}
+#tbl-power th{white-space:normal;vertical-align:bottom}
+th{font-weight:600;color:var(--ink2);font-size:13px;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.hl td{background:var(--hl)}
+tr.sel td{background:var(--hl)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--ink2);padding:0 0 8px}
+details{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:0 16px}
+details+details{margin-top:12px}
+details>summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:8px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:16px;color:var(--ink2);font-weight:700}
+details[open]>summary::before{content:"\2212"}
+details>.body{padding:0 0 16px}
+.tbl-details{margin-top:12px}
+
+/* controls */
+.filters{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;margin:20px 0 14px}
+.ctl{display:flex;flex-direction:column;gap:6px;max-width:100%;min-width:0}
+.ctl .cl{font-size:12.5px;color:var(--ink2);font-weight:600}
+.seg{display:inline-flex;max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.seg button{flex:none}
+.seg button{appearance:none;border:0;background:transparent;color:var(--ink2);font:inherit;font-size:14px;padding:8px 13px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--hover)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:600}
+:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+
+/* charts */
+.chart{width:100%;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.ax{font-size:11.5px;fill:var(--muted)}
+.lbl{font-size:13px;fill:var(--ink)}
+.lbl2{font-size:11.5px;fill:var(--ink2)}
+.val{font-size:12.5px;fill:var(--ink);font-weight:600}
+.gl{stroke:var(--grid);stroke-width:1}
+.zl{stroke:var(--ink2);stroke-width:1;opacity:.7}
+.hit{fill:transparent;cursor:default}
+.hit:hover,.hit:focus{fill:var(--hover)}
+.hit:focus{outline:none}
+.hlband{fill:var(--hl)}
+.grp{font-size:12px;font-weight:700;fill:var(--ink2);letter-spacing:.04em;text-transform:uppercase}
+.key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink2);margin-bottom:8px}
+.key>span{display:inline-flex;align-items:center;gap:7px}
+.key em{font-style:normal}
+.key i{display:inline-block;width:12px;height:12px;border-radius:3px;flex:none}
+.key i.line{height:3px;width:16px;border-radius:2px}
+#tip{position:fixed;z-index:60;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.14);max-width:290px;display:none}
+#tip .tt{font-weight:650;margin-bottom:5px}
+#tip .tr{display:flex;justify-content:space-between;gap:16px;line-height:1.5}
+#tip .tr span:first-child{color:var(--ink2)}
+#tip .tr span:last-child{font-weight:650;font-variant-numeric:tabular-nums}
+
+/* strips */
+.strip h3{font-size:14px;color:var(--ink2);font-weight:600;margin-bottom:4px}
+.strip .big{font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.strip .ci{font-size:13px;color:var(--ink2);margin:6px 0 2px}
+
+/* tree */
+.tree{display:grid;grid-template-columns:1.15fr auto 1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+.op{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--ink2);font-weight:600}
+.node{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px}
+.node.root{border-color:var(--ink2)}
+.node .nl{font-size:13px;font-weight:650;margin-bottom:2px}
+.node .nf{font-size:12px;color:var(--ink2);min-height:32px;margin-bottom:8px}
+.node .nv{font-size:15px;font-variant-numeric:tabular-nums}
+.node .nv b{font-size:17px}
+.node .nc{font-size:13px;color:var(--ink2);margin-top:6px;font-variant-numeric:tabular-nums}
+@media (max-width:900px){.tree{grid-template-columns:1fr}.op{padding:2px 0}}
+
+/* design spec */
+.spec{display:grid;grid-template-columns:200px 1fr;gap:0}
+.spec dt,.spec dd{margin:0;padding:11px 0;border-bottom:1px solid var(--line)}
+.spec dt{font-weight:600;color:var(--ink2);font-size:14px;padding-right:16px}
+.spec dd{font-size:15px}
+@media (max-width:640px){.spec{grid-template-columns:1fr}.spec dt{border-bottom:0;padding-bottom:0}}
+
+/* callouts */
+.callout{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:16px 18px}
+.callout h4{margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left:4px solid var(--c-asm)}
+.callout.info{border-left:4px solid var(--c-unc)}
+.callout.prop{border-left:4px solid var(--c-prop)}
+
+/* findings list */
+.items{display:grid;gap:14px;counter-reset:it}
+.item{display:grid;grid-template-columns:36px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.item .no{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.item h3{margin-bottom:6px;font-size:17px;line-height:1.35}
+.item .ev{font-size:13.5px;color:var(--ink2);margin-top:8px}
+.item .ev a{text-underline-offset:3px}
+
+/* profit grid */
+.sens{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.sens>*{min-width:0}
+@media (max-width:760px){.sens{grid-template-columns:1fr}}
+.sens table td,.sens table th{text-align:center;padding:8px 6px}
+.sens table td.sel-cell{outline:2px solid var(--ink);outline-offset:-2px;font-weight:700}
+.inbar{display:inline-block;height:8px;border-radius:4px;background:var(--s1);vertical-align:middle;margin-right:8px}
+
+footer{padding:56px 0 64px;color:var(--ink2);font-size:13.5px}
+noscript{display:block;padding:24px;background:var(--surface);border:1px solid var(--line);margin:24px}
+@media print{nav.nav{display:none}details{border:0}details>.body{display:block}}
+</style>
+</head>
+<body>
+<noscript>This dashboard draws its charts with JavaScript. Enable JavaScript to view it.</noscript>
+
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">Portfolio project · Reanalysis of an educational case</div>
+    <h1>Artea | E-commerce Growth & Promotion Analytics</h1>
+    <p class="question">Does offering a coupon increase revenue per customer, and which customers should be considered for a follow-up targeting experiment?</p>
+    <p class="scope">This dashboard reanalyzes the coupon experiment data supplied with an educational e-commerce case: <span data-k="n_exp"></span> experiment customers and <span data-k="n_next"></span> next-campaign candidates. I did not run this experiment, and the figures describe the case dataset, not a live retailer. Revenue appears in the dataset's recorded units; the currency is not specified.</p>
+    <div class="chips" aria-label="Tools used">
+      <span class="chip">SQLite</span><span class="chip">Python</span><span class="chip">pandas</span><span class="chip">NumPy</span><span class="chip">SciPy</span><span class="chip">HTML / JavaScript</span>
+    </div>
+  </div>
+</header>
+
+<nav class="nav" aria-label="Sections"><div class="wrap">
+  <a href="#summary">Decision</a><a href="#experiment">Experiment result</a><a href="#drivers">Revenue drivers</a><a href="#segments">Segments</a><a href="#profit">Profit scenarios</a><a href="#next">Next campaign</a><a href="#actions">Insights &amp; actions</a><a href="#appendix">Methods &amp; limits</a>
+</div></nav>
+
+<main class="wrap">
+
+<!-- 1. DECISION SUMMARY -->
+<section class="block" id="summary">
+  <div class="sec-head"><span class="sec-no">01</span><h2>Decision summary</h2></div>
+  <p class="lead">The page follows the order of a decision: the question, the evidence, the uncertainty, and the action it supports.</p>
+
+  <div class="g4 mt">
+    <div class="card q-card"><h3>What is being improved</h3><p>Revenue growth from coupon promotions. The decision is whether to send a 20% coupon broadly, and whether any customer group deserves a targeted follow-up test.</p></div>
+    <div class="card q-card"><h3>How success is judged</h3><p>Recorded revenue per assigned customer, with non-buyers counted at zero. Purchase rate and transactions per customer are secondary: they describe how revenue moved, not whether it moved.</p></div>
+    <div class="card q-card"><h3>What the data shows</h3><p>Revenue per customer was <span data-k="rev_c"></span> without a coupon and <span data-k="rev_t"></span> with one, a difference of <span data-k="rev_diff"></span> (95% CI <span data-k="rev_lo"></span> to <span data-k="rev_hi"></span>, p = <span data-k="rev_p"></span>). The interval includes both a loss and a gain.</p></div>
+    <div class="card q-card"><h3>What I recommend</h3><p>Do not treat a broad coupon send as a proven revenue strategy. Confirm how discounts are recorded, then test cart abandoners in a new randomized experiment with the effect size and sample set in advance.</p></div>
+  </div>
+
+  <div class="verdict mt">
+    <div class="big">The experiment does not establish a revenue benefit from a broad coupon rollout. Cart abandoners are a candidate for further testing, not a validated target segment.</div>
+    <p class="small" style="margin:0">The revenue interval is wide enough to include both a loss and a gain per customer, so the data confirms neither. It is not a finding that the coupon failed.</p>
+  </div>
+
+  <div class="g4 mt">
+    <div class="card tile"><div class="lab">Revenue per customer, coupon minus control</div><div class="val" data-k="rev_diff"></div><div class="sub">95% CI <span data-k="rev_lo"></span> to <span data-k="rev_hi"></span><br>two-sided p = <span data-k="rev_p"></span></div><div class="tg"><span class="chip"><i style="background:var(--c-obs)"></i>Observed, with uncertainty</span></div></div>
+    <div class="card tile"><div class="lab">Purchase rate, coupon minus control</div><div class="val" data-k="pur_diff"></div><div class="sub"><span data-k="pur_c"></span> to <span data-k="pur_t"></span> of assigned customers<br>two-sided p = <span data-k="pur_p"></span></div><div class="tg"><span class="chip"><i style="background:var(--c-obs)"></i>Observed, with uncertainty</span></div></div>
+    <div class="card tile"><div class="lab">Transactions per customer, coupon minus control</div><div class="val" data-k="trn_diff"></div><div class="sub"><span data-k="trn_c"></span> to <span data-k="trn_t"></span> per assigned customer<br>unadjusted secondary p = <span data-k="trn_p"></span></div><div class="tg"><span class="chip"><i style="background:var(--c-obs)"></i>Observed, with uncertainty</span></div></div>
+    <div class="card tile"><div class="lab">Cart abandoners among next-campaign candidates</div><div class="val" data-k="cart_next_n"></div><div class="sub">of <span data-k="n_next"></span> candidates (<span data-k="cart_next_share"></span>)<br>no outcomes recorded for this group</div><div class="tg"><span class="chip"><i style="background:var(--c-prop)"></i>Candidate for a proposed test</span></div></div>
+  </div>
+
+  <div class="legend-row" aria-label="How to read the evidence labels">
+    <b>Evidence labels used below:</b>
+    <span class="chip"><i style="background:var(--c-obs)"></i>Observed: what this sample shows</span>
+    <span class="chip"><i style="background:var(--c-unc)"></i>Uncertainty: intervals and p-values</span>
+    <span class="chip"><i style="background:var(--c-asm)"></i>Assumption: business inputs I set</span>
+    <span class="chip"><i style="background:var(--c-prop)"></i>Proposed: design not yet run</span>
+  </div>
+</section>
+
+<!-- 2. EXPERIMENT -->
+<section class="block" id="experiment">
+  <div class="sec-head"><span class="sec-no">02</span><h2>Did the coupon change revenue?</h2>
+    <div class="tags"><span class="chip"><i style="background:var(--c-obs)"></i>Observed</span><span class="chip"><i style="background:var(--c-unc)"></i>Uncertainty</span></div></div>
+  <p class="lead">Customers are compared by the arm they were assigned to. Every metric divides by all assigned customers, including those who bought nothing, so a rate here is never a share of buyers.</p>
+
+  <div class="g3 mt">
+    <div class="card strip"><h3>Revenue per customer</h3><div class="big" data-k="rev_diff"></div><div class="ci">95% CI <span data-k="rev_lo"></span> to <span data-k="rev_hi"></span> · p = <span data-k="rev_p"></span></div><div class="chart" id="strip-rev"></div><div class="small">Primary decision metric. Recorded revenue units per assigned customer.</div></div>
+    <div class="card strip"><h3>Purchase rate (percentage points)</h3><div class="big" data-k="pur_diff"></div><div class="ci">95% CI <span data-k="pur_lo"></span> to <span data-k="pur_hi"></span> · p = <span data-k="pur_p"></span></div><div class="chart" id="strip-pur"></div><div class="small">Secondary. Purchasers divided by assigned customers.</div></div>
+    <div class="card strip"><h3>Transactions per customer</h3><div class="big" data-k="trn_diff"></div><div class="ci">95% CI <span data-k="trn_lo"></span> to <span data-k="trn_hi"></span> · p = <span data-k="trn_p"></span></div><div class="chart" id="strip-trn"></div><div class="small">Secondary, unadjusted. Transactions divided by assigned customers.</div></div>
+  </div>
+  <p class="small mt">Each panel has its own axis because the three metrics have different units. A bar is the 95% confidence interval for coupon minus control; the vertical line marks zero difference.</p>
+
+  <div class="card mt"><div class="scroll">
+    <table id="tbl-overall"><caption>Control versus coupon, with the denominator of every metric</caption>
+      <thead><tr><th>Metric</th><th>Definition</th><th class="num">Control</th><th class="num">Coupon</th><th class="num">Difference</th><th class="num">95% CI</th><th class="num">Two-sided p</th><th>Role</th></tr></thead>
+      <tbody></tbody></table></div>
+    <p class="src">Source: <code>outputs/05_experiment_inference.csv</code>. Revenue uses Welch's t-test; purchase rate uses a pooled two-proportion z-test with an unpooled Wald interval; transactions use Welch's t-test.</p></div>
+
+  <div class="card mt"><div class="scroll">
+    <table id="tbl-counts"><caption>Counts behind the rates</caption>
+      <thead><tr><th>Arm</th><th class="num">Assigned customers</th><th class="num">Purchasers</th><th class="num">Transactions</th><th class="num">Recorded revenue</th><th class="num">Purchase rate</th><th class="num">Transactions per customer</th></tr></thead>
+      <tbody></tbody></table></div>
+    <p class="src">Source: <code>outputs/02_kpi_and_metric_tree.csv</code>. Purchase rate and transactions per customer share a denominator but have different numerators, so they are different metrics.</p></div>
+
+  <div class="g2 mt">
+    <div class="callout"><h4>Primary metric</h4>
+      <p>The revenue interval runs from <span data-k="rev_lo"></span> to <span data-k="rev_hi"></span>, which is about <span data-k="rev_rel_lo"></span> to <span data-k="rev_rel_hi"></span> of the control mean (computed from the CSV values). A 4,000-replicate bootstrap gives <span data-k="boot_lo"></span> to <span data-k="boot_hi"></span>, consistent with the t-based interval. A result that cannot reject zero is not proof of no effect.</p></div>
+    <div class="callout warn"><h4>Secondary metrics</h4>
+      <p>The purchase-rate difference (p = <span data-k="pur_p"></span>) does not reach a 5% threshold, and its interval reaches <span data-k="pur_lo"></span>. Transactions per customer has an unadjusted p = <span data-k="trn_p"></span>. That is a secondary comparison and does not establish a revenue benefit.</p></div>
+  </div>
+  <div class="callout info mt"><h4>Checks on the experiment</h4>
+    <p>No missing required values, duplicate customer IDs, invalid flags, negative values, or revenue without a transaction were found. The largest absolute standardized difference in baseline characteristics is <span data-k="max_smd"></span>, and the sample-ratio check gives p = <span data-k="srm_p"></span> assuming a 1:1 allocation. The allocation protocol was not verified, and balance alone does not prove randomization. Details are in the <a href="#appendix">appendix</a>.</p></div>
+</section>
+
+<!-- 3. DRIVERS -->
+<section class="block" id="drivers">
+  <div class="sec-head"><span class="sec-no">03</span><h2>What moved revenue per customer</h2>
+    <div class="tags"><span class="chip"><i style="background:var(--c-obs)"></i>Observed</span></div></div>
+  <p class="lead">Revenue per customer splits into three factors that multiply. Comparing each factor between arms shows where the revenue difference comes from.</p>
+
+  <div class="tree mt" id="tree"></div>
+
+  <div class="card mt">
+    <h3>Contribution of each factor to the revenue-per-customer difference</h3>
+    <p class="small">Shapley decomposition: each factor's contribution is averaged over all six orders in which the factors can be switched from control to coupon values, so no ordering is favored. Units: recorded revenue per assigned customer.</p>
+    <div class="key"><span><i style="background:var(--s1)"></i>Raises revenue per customer</span><span><i style="background:var(--neg)"></i>Lowers revenue per customer</span><span><i style="background:var(--ink2)"></i>Net difference</span></div>
+    <div class="chart" id="chart-decomp"></div>
+    <details class="tbl-details"><summary>Show data table</summary><div class="body scroll"><table id="tbl-decomp"><thead><tr><th>Factor</th><th class="num">Control</th><th class="num">Coupon</th><th class="num">Contribution</th></tr></thead><tbody></tbody></table></div></details>
+    <p class="src">Source: <code>outputs/07_revenue_decomposition.csv</code>. The three rounded contributions add to <span data-k="d_round_sum"></span>; the net difference of <span data-k="d_tot"></span> uses unrounded values.</p>
+  </div>
+
+  <div class="g2 mt">
+    <div class="callout"><h4>Reading</h4>
+      <p>More customers bought (<span data-k="d_pr"></span>) and each buyer made slightly more transactions (<span data-k="d_tpp"></span>). Revenue per transaction fell from <span data-k="rpt_c"></span> to <span data-k="rpt_t"></span> (<span data-k="d_rpt"></span>), which offset those gains.</p></div>
+    <div class="callout warn"><h4>Limit of this decomposition</h4>
+      <p>It is arithmetic. It does not separate the causal effects of discounting, customer mix, and product mix. Metrics among purchasers also change with who chooses to buy, so a lower revenue per transaction can reflect discounts, different buyers, or both.</p></div>
+  </div>
+</section>
+
+<!-- 4. SEGMENTS -->
+<section class="block" id="segments">
+  <div class="sec-head"><span class="sec-no">04</span><h2>Do any customer segments respond differently?</h2>
+    <div class="tags"><span class="chip"><i style="background:var(--c-obs)"></i>Observed</span><span class="chip"><i style="background:var(--c-unc)"></i>Uncertainty</span></div></div>
+  <p class="lead">The same <span data-k="n_exp"></span> customers are split four ways: acquisition channel, purchase history, cart status, and weeks since last visit. These are exploratory comparisons. None is a validated targeting policy.</p>
+
+  <div class="filters">
+    <div class="ctl"><span class="cl" id="lbl-dim">Segment dimension</span><div class="seg" id="ctl-dim" role="group" aria-labelledby="lbl-dim"></div></div>
+  </div>
+
+  <div class="card">
+    <h3>Revenue per customer, coupon minus control, by segment</h3>
+    <p class="small">Dot: difference in recorded revenue per assigned customer. Bar: pointwise 95% confidence interval. The axis is the same in every view so intervals can be compared directly.</p>
+    <div class="chart" id="chart-seg"></div>
+  </div>
+
+  <div class="card mt"><div class="scroll">
+    <table id="tbl-seg"><caption>Segment comparison. Control and coupon n are customers assigned to each arm; means and differences are recorded revenue per customer.</caption>
+      <thead><tr><th>Segment</th><th class="num">Control n</th><th class="num">Coupon n</th><th class="num">Control mean</th><th class="num">Coupon mean</th><th class="num">Difference</th><th class="num">95% CI (pointwise)</th><th class="num">Unadjusted p</th><th class="num">Holm p (12 tests)</th><th class="num">Purchase-rate diff.</th></tr></thead>
+      <tbody></tbody></table></div>
+    <p class="src">Sources: <code>outputs/08_segment_inference.csv</code> for revenue results; purchase-rate differences in the same file, checked against <code>outputs/03_segment_performance.csv</code>. Welch intervals computed from SQL sufficient statistics (<code>outputs/05_segment_sufficient_statistics.csv</code>).</p></div>
+
+  <div class="g3 mt">
+    <div class="callout info"><h4>Counts overlap across splits</h4><p id="overlap-note"></p></div>
+    <div class="callout info"><h4>Intervals versus adjusted p-values</h4><p>The confidence intervals are individual 95% intervals, not corrected for making many comparisons. The Holm-adjusted p-values do correct for the 12 revenue comparisons. The two should not be read as the same guarantee.</p></div>
+    <div class="callout info"><h4>Channel names</h4><p>Names come from the code table in the supplementary case (Artea C, p. 2): 1 Google, 2 Facebook, 3 Instagram, 4 Referral, 5 Other. They should be checked against the original experiment's data dictionary.</p></div>
+  </div>
+
+  <div class="g2 mt">
+    <div class="callout prop"><h4>Abandoned cart: the follow-up hypothesis</h4>
+      <p>The sample difference is <span data-k="cart_diff"></span> per customer (95% CI <span data-k="cart_lo"></span> to <span data-k="cart_hi"></span>; Holm-adjusted p = <span data-k="cart_holm"></span>). The interval includes a loss of <span data-k="cart_lo_abs"></span>, so the data does not support saying the coupon works for cart abandoners.</p>
+      <p>Cart status is the hypothesis for a new test because it is a clear behavior with a simple eligibility rule. It was chosen after looking at results, which introduces selection bias, so the estimate is not a forecast of campaign performance.</p></div>
+    <div class="callout warn"><h4>Google: the most negative estimate</h4>
+      <p>The difference is <span data-k="goog_diff"></span> (95% CI <span data-k="goog_lo"></span> to <span data-k="goog_hi"></span>). The unadjusted p-value is <span data-k="goog_raw"></span>, but across 12 comparisons the Holm-adjusted p-value is <span data-k="goog_holm"></span>, above 5%. It is a pattern worth re-examining in new data, not a confirmed loss.</p></div>
+  </div>
+
+  <div class="card mt">
+    <h3>Do treatment effects differ between groups within a split?</h3>
+    <p class="small">Omnibus Wald tests of equal treatment effects across the levels of each split, with Holm adjustment across the four tests.</p>
+    <div class="scroll"><table id="tbl-het"><thead><tr><th>Split</th><th class="num">Degrees of freedom</th><th class="num">Chi-square</th><th class="num">Unadjusted p</th><th class="num">Holm-adjusted p (4 tests)</th></tr></thead><tbody></tbody></table></div>
+    <p class="src">Source: <code>outputs/09_effect_heterogeneity.csv</code>. No test shows that effects differ after adjustment. Estimates for the smallest channels (Referral, Other) are imprecise.</p>
+  </div>
+  <p class="mt small">Across all 12 revenue comparisons, the smallest Holm-adjusted p-value is <span data-k="min_holm"></span>. No segment shows a revenue improvement that survives adjustment.</p>
+</section>
+
+<!-- 5. PROFIT -->
+<section class="block" id="profit">
+  <div class="sec-head"><span class="sec-no">05</span><h2>Does the answer change under profit assumptions?</h2>
+    <div class="tags"><span class="chip"><i style="background:var(--c-asm)"></i>Assumption</span><span class="chip"><i style="background:var(--c-unc)"></i>Uncertainty</span></div></div>
+  <p class="lead">Recorded revenue is not profit, and the data does not say whether revenue is recorded before or after the coupon discount. I model both cases. The outputs are scenarios driven by the inputs below. They are not observed profit, and no coupon redemption rate was observed.</p>
+
+  <div class="g2 mt">
+    <div class="card"><h3>Scenario A: recorded revenue is after the discount</h3>
+      <p class="small">Both groups earn the same contribution margin on net revenue.</p>
+      <p style="margin:0"><code>Incremental contribution = margin × (revenue per customer difference) − contact cost per coupon customer</code></p></div>
+    <div class="card"><h3>Scenario B: recorded revenue is before the discount</h3>
+      <p class="small">Every coupon-group transaction gets a 20% discount. Cost of goods is proportional to pre-discount revenue.</p>
+      <p style="margin:0"><code>Incremental contribution = (margin − 0.20) × coupon revenue per customer − margin × control revenue per customer − contact cost</code></p></div>
+  </div>
+  <p class="small mt">Margins in A and B are measured on different bases (net versus pre-discount revenue), so the same percentage is not the same economics. The intervals reflect sampling variation given the assumptions and exclude uncertainty in the assumptions themselves. The 20% discount comes from the case lecture as cited in the project report.</p>
+
+  <div class="filters">
+    <div class="ctl"><span class="cl" id="lbl-pop">Audience</span><div class="seg" id="ctl-pop" role="group" aria-labelledby="lbl-pop"></div></div>
+    <div class="ctl"><span class="cl" id="lbl-margin">Assumed contribution margin</span><div class="seg" id="ctl-margin" role="group" aria-labelledby="lbl-margin"></div></div>
+    <div class="ctl"><span class="cl" id="lbl-cost">Contact cost per coupon customer (recorded revenue units)</span><div class="seg" id="ctl-cost" role="group" aria-labelledby="lbl-cost"></div></div>
+  </div>
+
+  <div class="card">
+    <h3>Incremental contribution per assigned customer, coupon minus control</h3>
+    <p class="small" id="profit-sub"></p>
+    <div class="chart" id="chart-profit"></div>
+    <div class="scroll"><table id="tbl-profit"><thead><tr><th>Accounting assumption</th><th class="num">Incremental contribution</th><th class="num">95% CI (given assumptions)</th></tr></thead><tbody></tbody></table></div>
+    <p class="small mt" id="profit-be"></p>
+    <p class="src">Source: <code>outputs/11_profit_scenarios.csv</code>. Units are the dataset's recorded revenue units; no currency symbol is assigned.</p>
+  </div>
+
+  <h3 class="mt2" style="margin-bottom:12px">Sensitivity across all margin and cost inputs</h3>
+  <div class="sens" id="sens"></div>
+  <div class="callout warn mt"><h4>What the scenarios say</h4>
+    <p id="profit-read"></p></div>
+</section>
+
+<!-- 6. NEXT CAMPAIGN -->
+<section class="block" id="next">
+  <div class="sec-head"><span class="sec-no">06</span><h2>Next campaign and the follow-up experiment</h2>
+    <div class="tags"><span class="chip"><i style="background:var(--c-obs)"></i>Observed</span><span class="chip"><i style="background:var(--c-prop)"></i>Proposed</span></div></div>
+  <p class="lead">The next-campaign file lists <span data-k="n_next"></span> candidate customers and no outcomes. It describes who could be targeted. It says nothing about what a campaign would earn.</p>
+
+  <div class="stack mt">
+    <div class="card">
+      <h3>Who is in the next campaign</h3>
+      <p class="small">Share of each population in a segment. Segments overlap, so rows do not add to 100%.</p>
+      <div class="key"><span><i style="background:var(--s1)"></i><em>Experiment (<span data-k="n_exp"></span> customers)</em></span><span><i style="background:var(--s2)"></i><em>Next campaign (<span data-k="n_next"></span> customers)</em></span></div>
+      <div class="chart" id="chart-pop"></div>
+      <details class="tbl-details"><summary>Show data table</summary><div class="body scroll"><table id="tbl-pop"><thead><tr><th>Segment</th><th class="num">Experiment share</th><th class="num">Next-campaign share</th><th class="num">Next-campaign customers</th></tr></thead><tbody></tbody></table></div></details>
+      <p class="src">Source: <code>outputs/10_population_comparison.csv</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Next-campaign candidates by channel and purchase history</h3>
+      <p class="small">Mutually exclusive groups that add to <span data-k="n_next"></span>.</p>
+      <div class="scroll"><table id="tbl-profile"><thead><tr><th>Channel</th><th>Purchase history</th><th class="num">Customers</th><th class="num">Share</th><th class="num">Cart share</th><th class="num">Mean weeks since visit</th></tr></thead><tbody></tbody></table></div>
+      <p class="src">Source: <code>outputs/04_next_campaign_profile.csv</code>.</p>
+    </div>
+  </div>
+  <div class="callout info mt"><p><span data-k="cart_next_n"></span> of the candidates (<span data-k="cart_next_share"></span>) are cart abandoners, close to <span data-k="cart_exp_share"></span> in the experiment. A similar mix does not show that treatment effects will carry over to a later campaign. I do not multiply the observed segment difference by this count, because that would turn a noisy, selected estimate into a revenue forecast.</p></div>
+
+  <h3 class="mt2" style="margin-bottom:12px">Proposed follow-up experiment <span class="chip" style="margin-left:8px;vertical-align:middle"><i style="background:var(--c-prop)"></i>Proposed, not run</span></h3>
+  <div class="card">
+    <dl class="spec">
+      <dt>Question</dt><dd>Does offering a 20% coupon to customers who abandoned a cart increase net revenue per eligible customer?</dd>
+      <dt>Population</dt><dd>Customers who left items in a cart. <span data-k="cart_next_n"></span> are available in the next-campaign file.</dd>
+      <dt>Arms and assignment</dt><dd>No coupon (control) versus 20% coupon, randomized 1:1 at the customer level, with duplicate enrollment prevented and other promotions kept comparable.</dd>
+      <dt>Primary metric</dt><dd>Net revenue per assigned customer after discounts and refunds, including customers who buy nothing.</dd>
+      <dt>Secondary metrics</dt><dd>Purchase rate and transactions per customer.</dd>
+      <dt>Guardrails</dt><dd>Contribution per customer, refunds, unsubscribes, and later full-price purchasing. The current data does not contain all of these.</dd>
+      <dt>Observation window</dt><dd>28 days after assignment for every customer. This is a new design choice. It is not the confirmed window of the original experiment.</dd>
+      <dt>Analysis plan</dt><dd>Two-sided significance level of 5% and 80% power, with a fixed sample and no stopping when a preliminary p-value crosses the threshold.</dd>
+      <dt>Decision rule</dt><dd>Set the minimum economically meaningful effect before launch, then judge the primary metric together with contribution and the guardrails.</dd>
+    </dl>
+  </div>
+
+  <h3 class="mt2" style="margin-bottom:6px">How large must the experiment be?</h3>
+  <p class="lead">The required sample depends on the smallest effect worth detecting. It grows with the inverse square of that effect: halve the target and the sample quadruples.</p>
+  <div class="filters">
+    <div class="ctl"><span class="cl" id="lbl-power">Statistical power</span><div class="seg" id="ctl-power" role="group" aria-labelledby="lbl-power"></div></div>
+  </div>
+  <div class="card"><h3>Required total sample versus target effect</h3>
+    <p class="small">Total customers across both arms on a log scale. Target effect is the absolute difference in revenue per customer. Dots mark the sample sizes in the results file.</p>
+    <div class="key"><span><i class="line" style="background:var(--s1)"></i>All customers</span><span><i class="line" style="background:var(--s2)"></i>Cart abandoners</span><span><i style="background:transparent;border:2.5px solid var(--ink2);border-radius:50%;width:12px;height:12px"></i><em>Smallest effect detectable with the customers available</em></span></div>
+    <div class="chart" id="chart-power"></div></div>
+  <div class="card mt"><h3>Required sample by target effect</h3>
+    <div class="scroll"><table id="tbl-power"><thead><tr><th class="num">Target effect</th><th class="num">All customers: total n</th><th>Against <span data-k="n_next"></span> available</th><th class="num">Cart abandoners: total n</th><th>Against <span data-k="cart_next_n"></span> available</th><th class="num">Cart n as multiple of available</th></tr></thead><tbody></tbody></table></div>
+    <p class="src">Source: <code>outputs/12_experiment_power.csv</code>. Normal approximation, independent customers, 1:1 allocation, and historical within-arm revenue variance, applied to a new 28-day window. Re-check the variance in a pilot.</p></div>
+  <div class="g2 mt" id="mde-tiles"></div>
+  <div class="g2 mt">
+    <div class="callout prop"><h4>What the relationship means for planning</h4>
+      <p id="power-read"></p></div>
+    <div class="callout info"><h4>Two experiments, two questions</h4>
+      <p>An all-customer experiment asks whether a broad send raises revenue per customer. A cart-only experiment asks whether the coupon raises revenue among cart abandoners. The answer to one does not substitute for the other, so the population should follow the business question. Recruitment time cannot be estimated without traffic data.</p></div>
+  </div>
+</section>
+
+<!-- 7. INSIGHTS AND ACTIONS -->
+<section class="block" id="actions">
+  <div class="sec-head"><span class="sec-no">07</span><h2>Insights and recommendations</h2></div>
+  <h3 class="mt" style="margin-bottom:12px">3 key insights</h3>
+  <div class="items">
+    <div class="item"><div class="no">1</div><div><h3>Higher purchase activity did not translate into a confirmed revenue gain.</h3>
+      <p style="margin:0">Purchase rate rose <span data-k="pur_diff"></span> and transactions per customer rose <span data-k="trn_diff"></span>, but revenue per transaction fell from <span data-k="rpt_c"></span> to <span data-k="rpt_t"></span>. Revenue per customer moved by <span data-k="rev_diff"></span> (95% CI <span data-k="rev_lo"></span> to <span data-k="rev_hi"></span>).</p>
+      <div class="ev">Evidence: <a href="#experiment">experiment result</a>, <a href="#drivers">revenue decomposition</a></div></div></div>
+    <div class="item"><div class="no">2</div><div><h3>No customer segment showed a revenue improvement after correcting for multiple tests.</h3>
+      <p style="margin:0">The smallest Holm-adjusted p-value across 12 segment comparisons is <span data-k="min_holm"></span>. The abandoned-cart estimate (<span data-k="cart_diff"></span>) has an interval from <span data-k="cart_lo"></span> to <span data-k="cart_hi"></span>, and tests of effect differences between groups give adjusted p-values from <span data-k="het_min"></span> to <span data-k="het_max"></span>.</p>
+      <div class="ev">Evidence: <a href="#segments">segment analysis</a></div></div></div>
+    <div class="item"><div class="no">3</div><div><h3>The follow-up test is limited by sample size, and the target effect decides how limited.</h3>
+      <p style="margin:0">The <span data-k="cart_next_n"></span> available cart abandoners can detect about <span data-k="mde_cart80"></span> per customer at 80% power. Detecting <span data-k="tgt1"></span> needs <span data-k="n_cart_1"></span> customers in total, <span data-k="n_cart_1_mult"></span> times the number available.</p>
+      <div class="ev">Evidence: <a href="#next">sample-size analysis</a></div></div></div>
+  </div>
+
+  <h3 class="mt2" style="margin-bottom:12px">3 recommendations</h3>
+  <div class="items">
+    <div class="item"><div class="no">1</div><div><h3>Do not recommend a broad coupon send as a proven revenue-growth strategy.</h3>
+      <p style="margin:0">The primary metric does not support it, and the all-customer contribution estimate is negative in every Scenario A and B combination tested.</p>
+      <div class="ev">Linked to insights 1 and 2. Evidence: <a href="#experiment">experiment result</a>, <a href="#profit">profit scenarios</a></div></div></div>
+    <div class="item"><div class="no">2</div><div><h3>Confirm how discounts are recorded, the outcome window, and the cost definitions.</h3>
+      <p style="margin:0">For the cart-abandoner group, Scenario A gives a positive estimate in <span data-k="cartA_pos"></span> margin and cost combinations while Scenario B is negative in <span data-k="cartB_neg"></span>. Whether recorded revenue is before or after the discount decides the sign.</p>
+      <div class="ev">Linked to insight 1. Evidence: <a href="#profit">profit scenarios</a>, <a href="#appendix">open definitions</a></div></div></div>
+    <div class="item"><div class="no">3</div><div><h3>Treat cart abandoners as a hypothesis for a new randomized test, with the effect size and sample fixed in advance.</h3>
+      <p style="margin:0">Agree the smallest economically meaningful effect from margin, contact cost, and discount before launch, size the test from it, and report group sizes, uncertainty, and profit assumptions next to the headline metric. Do not multiply the observed lift by <span data-k="cart_next_n"></span> and call it incremental revenue.</p>
+      <div class="ev">Linked to insights 2 and 3. Evidence: <a href="#segments">segments</a>, <a href="#next">proposed experiment</a></div></div></div>
+  </div>
+</section>
+
+<!-- APPENDIX -->
+<section class="block" id="appendix">
+  <div class="sec-head"><span class="sec-no">A</span><h2>Methods, checks, and limits</h2></div>
+  <p class="lead">What was checked, how the metrics are defined, and what this analysis cannot say.</p>
+
+  <details open><summary>Limits and open definitions</summary><div class="body">
+    <div class="scroll"><table>
+      <thead><tr><th>Item</th><th>Status</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td>Revenue before or after discount</td><td>Not confirmed</td><td>Decides the sign of the profit estimate for cart abandoners (Section 5).</td></tr>
+        <tr><td>Outcome window of the original experiment</td><td>Not confirmed</td><td>The 28-day window in the proposed test is a new design choice.</td></tr>
+        <tr><td>Coupon redemption, refunds, and costs</td><td>Not in the data</td><td>Profit scenarios use assumed margins and contact costs.</td></tr>
+        <tr><td>Allocation protocol and ratio</td><td>Not verified</td><td>The sample-ratio check assumes 1:1. Baseline balance does not prove randomization.</td></tr>
+        <tr><td>Channel code names</td><td>From a related case supplement</td><td>Check against the original experiment's data dictionary.</td></tr>
+        <tr><td>Currency of recorded revenue</td><td>Not specified</td><td>No currency symbol is used on this page.</td></tr>
+        <tr><td>Independent validation</td><td>None available</td><td>The data was explored in earlier coursework, so a new split is not a clean holdout. Segment tests remain exploratory.</td></tr>
+        <tr><td>Event timestamps, product records, campaign spend, full purchase history</td><td>Not in the data</td><td>No purchase funnel, retention cohort, product analysis, or return on ad spend is shown, because none can be built from these tables.</td></tr>
+      </tbody></table></div>
+    <p class="small mt">Segment tests can be sensitive to skewed revenue, small groups, and selection after seeing outcomes. Future policy performance, causal mediation, and fairness effects were not validated.</p>
+  </div></details>
+
+  <details><summary>Data quality and baseline balance</summary><div class="body">
+    <div class="scroll"><table id="tbl-dq"><thead><tr><th>Source table</th><th class="num">Rows</th><th class="num">Distinct customers</th><th class="num">Missing core values</th><th class="num">Invalid core values</th><th class="num">Revenue without a transaction</th></tr></thead><tbody></tbody></table></div>
+    <p class="src">Source: <code>outputs/01_data_quality.csv</code>. The next-campaign table has no outcome columns, so the last two checks do not apply to it.</p>
+    <h4 class="mt">Baseline balance: standardized difference, coupon minus control</h4>
+    <div class="chart" id="chart-balance"></div>
+    <p class="small">Maximum absolute value <span data-k="max_smd"></span>. Sample-ratio check p = <span data-k="srm_p"></span> under an assumed 1:1 allocation. Balance on observed characteristics is a diagnostic, not proof of random assignment.</p>
+    <details class="tbl-details"><summary>Show data table</summary><div class="body scroll"><table id="tbl-balance"><thead><tr><th>Variable</th><th class="num">Control mean</th><th class="num">Coupon mean</th><th class="num">Standardized difference</th></tr></thead><tbody></tbody></table></div></details>
+    <p class="src">Source: <code>outputs/06_baseline_balance.csv</code>, <code>outputs/extended_summary.json</code>.</p>
+  </div></details>
+
+  <details><summary>Metric definitions</summary><div class="body"><div class="scroll"><table>
+    <thead><tr><th>Metric</th><th>Definition</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Recorded revenue per customer</td><td>Sum of recorded revenue ÷ assigned customers</td><td>Primary decision metric</td></tr>
+      <tr><td>Purchase rate</td><td>Customers with at least one transaction ÷ assigned customers</td><td>Secondary</td></tr>
+      <tr><td>Transactions per customer</td><td>Sum of transactions ÷ assigned customers</td><td>Secondary</td></tr>
+      <tr><td>Transactions per purchaser</td><td>Sum of transactions ÷ customers with at least one transaction</td><td>Descriptive driver</td></tr>
+      <tr><td>Revenue per transaction</td><td>Sum of recorded revenue ÷ sum of transactions</td><td>Descriptive driver</td></tr>
+    </tbody></table></div>
+    <p class="small mt">The denominator is all customers assigned to an arm (intention to treat). Revenue per customer = purchase rate × transactions per purchaser × revenue per transaction. Metrics among purchasers describe composition as well as behavior and are not causal effects on the same customers.</p></div></details>
+
+  <details><summary>Methods and tools</summary><div class="body">
+    <p>SQLite ran five SQL files for data-quality checks, the KPI metric tree, segment performance, the next-campaign profile, and segment sufficient statistics. Python with pandas, NumPy, and SciPy computed the inference. This page is plain HTML and JavaScript. BigQuery and Tableau were not used.</p>
+    <div class="scroll"><table><thead><tr><th>Question</th><th>Method</th></tr></thead><tbody>
+      <tr><td>Revenue and transaction difference between arms</td><td>Welch's t-test with a 95% interval; 4,000-replicate bootstrap as a check (seed 20261001)</td></tr>
+      <tr><td>Purchase-rate difference</td><td>Pooled two-proportion z-test; unpooled Wald interval</td></tr>
+      <tr><td>Where the revenue difference comes from</td><td>Shapley decomposition over the three metric-tree factors</td></tr>
+      <tr><td>Segment comparisons</td><td>Welch intervals from SQL sufficient statistics, reconciled with raw-row calculations; Holm adjustment across 12 comparisons</td></tr>
+      <tr><td>Differences in effect across groups</td><td>Omnibus Wald tests per split, Holm adjustment across 4 tests</td></tr>
+      <tr><td>Profit scenarios</td><td>Two accounting assumptions across 3 margins and 3 contact costs, with Welch intervals</td></tr>
+      <tr><td>Follow-up sample size</td><td>Normal approximation, two-sided 5% level, 80% and 90% power, 1:1 allocation</td></tr>
+    </tbody></table></div>
+    <p class="small mt">Reproduce from the project folder: <code>python scripts/run_analysis.py</code>, then <code>python scripts/extend_analysis.py</code>, then <code>python scripts/build_portfolio_dashboard.py</code> to rebuild this page.</p></div></details>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <p>Built from the aggregated result tables in <code>outputs/</code> of the Artea project. No customer-level records and no case text are included. The source workbook carries a reproduction restriction, so the underlying data is not redistributed.</p>
+  <p>This is a reanalysis of an educational case for portfolio purposes. It makes no claim about a live retailer's results or realized revenue.</p>
+</div></footer>
+
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = {"dq":[{"source":"ab_test","rows":5000,"distinct_customers":5000,"missing_core":0,"invalid_core":0,"revenue_without_transaction":0.0},{"source":"next_campaign","rows":6000,"distinct_customers":6000,"missing_core":0,"invalid_core":0,"revenue_without_transaction":null}],"kpi":[{"test_coupon":0,"customers":2498,"purchasers":267,"transactions":314,"revenue":19434.86,"purchase_rate":0.10688550840672538,"revenue_per_customer":7.780168134507607,"transactions_per_purchaser":1.1760299625468165,"revenue_per_transaction":61.89445859872612},{"test_coupon":1,"customers":2502,"purchasers":310,"transactions":380,"revenue":18861.76,"purchase_rate":0.12390087929656275,"revenue_per_customer":7.5386730615507584,"transactions_per_purchaser":1.2258064516129032,"revenue_per_transaction":49.636210526315786}],"profile":[{"channel_acq":1,"purchase_history":"prior_purchaser","customers":1647,"cart_share":0.29022465088038857,"mean_weeks_since_visit":3.1918639951426835,"population_share":0.2745,"size_rank":1},{"channel_acq":3,"purchase_history":"prior_purchaser","customers":1187,"cart_share":0.2603201347935973,"mean_weeks_since_visit":3.176074136478517,"population_share":0.19783333333333333,"size_rank":2},{"channel_acq":2,"purchase_history":"prior_purchaser","customers":902,"cart_share":0.3048780487804878,"mean_weeks_since_visit":3.2339246119733924,"population_share":0.15033333333333335,"size_rank":3},{"channel_acq":1,"purchase_history":"no_prior_purchase","customers":767,"cart_share":0.31029986962190353,"mean_weeks_since_visit":3.1616688396349413,"population_share":0.12783333333333333,"size_rank":4},{"channel_acq":3,"purchase_history":"no_prior_purchase","customers":636,"cart_share":0.2672955974842767,"mean_weeks_since_visit":3.24685534591195,"population_share":0.106,"size_rank":5},{"channel_acq":2,"purchase_history":"no_prior_purchase","customers":414,"cart_share":0.321256038647343,"mean_weeks_since_visit":3.1594202898550723,"population_share":0.069,"size_rank":6},{"channel_acq":4,"purchase_history":"prior_purchaser","customers":177,"cart_share":0.3333333333333333,"mean_weeks_since_visit":3.4519774011299433,"population_share":0.0295,"size_rank":7},{"channel_acq":5,"purchase_history":"prior_purchaser","customers":114,"cart_share":0.2543859649122807,"mean_weeks_since_visit":3.1403508771929824,"population_share":0.019,"size_rank":8},{"channel_acq":4,"purchase_history":"no_prior_purchase","customers":105,"cart_share":0.2761904761904762,"mean_weeks_since_visit":3.342857142857143,"population_share":0.0175,"size_rank":9},{"channel_acq":5,"purchase_history":"no_prior_purchase","customers":51,"cart_share":0.4117647058823529,"mean_weeks_since_visit":3.4901960784313726,"population_share":0.0085,"size_rank":10}],"overall":[{"metric":"revenue_after","control_mean":7.780168134507607,"treatment_mean":7.53867306155076,"difference":-0.24149507295684636,"ci_low":-1.5518438284569647,"ci_high":1.068853682543272,"p_value":0.7178858403041485,"method":"Two-sided Welch t-test and 95% CI"},{"metric":"purchased","control_mean":0.10688550840672538,"treatment_mean":0.12390087929656275,"difference":0.017015370889837372,"ci_low":-0.0006930631018305031,"ci_high":0.03472380488150525,"p_value":0.05971823468054388,"method":"Two-sided pooled two-proportion z-test; unpooled Wald 95% CI"},{"metric":"trans_after","control_mean":0.1257005604483587,"treatment_mean":0.1518784972022382,"difference":0.0261779367538795,"ci_low":0.00292875025440565,"ci_high":0.04942712325335335,"p_value":0.027331554779570534,"method":"Two-sided Welch t-test and 95% CI"}],"balance":[{"variable":"num_past_purch","control_mean":2.0196156925540434,"treatment_mean":2.0915267785771383,"standardized_difference":0.02808691350265252},{"variable":"spent_last_purchase","control_mean":56.68947958366692,"treatment_mean":58.155823341326936,"standardized_difference":0.02643664605548301},{"variable":"weeks_since_visit","control_mean":3.1829463570856684,"treatment_mean":3.2569944044764187,"standardized_difference":0.03278553088169405},{"variable":"browsing_minutes","control_mean":13.707365892714172,"treatment_mean":13.670663469224621,"standardized_difference":-0.005269277786237475},{"variable":"shopping_cart","control_mean":0.29983987189751804,"treatment_mean":0.28577138289368503,"standardized_difference":-0.030913869210549724},{"variable":"channel_1","control_mean":0.411128903122498,"treatment_mean":0.4028776978417266,"standardized_difference":-0.01679606716300108},{"variable":"channel_2","control_mean":0.20616493194555643,"treatment_mean":0.21742605915267785,"standardized_difference":0.027564193553289002},{"variable":"channel_3","control_mean":0.3142514011208967,"treatment_mean":0.30655475619504396,"standardized_difference":-0.016636264194788836},{"variable":"channel_4","control_mean":0.04523618895116093,"treatment_mean":0.04996003197442046,"standardized_difference":0.022187951139233737},{"variable":"channel_5","control_mean":0.02321857485988791,"treatment_mean":0.023181454836131096,"standardized_difference":-0.0002465819570950014}],"decomp":[{"driver":"purchase_rate","control":0.1068855084067253,"treatment":0.1239008792965627,"contribution_to_rpc_difference":1.1386474849419514},{"driver":"transactions_per_purchaser","control":1.1760299625468165,"treatment":1.2258064516129032,"contribution_to_rpc_difference":0.31944353091723193},{"driver":"revenue_per_transaction","control":61.89445859872612,"treatment":49.636210526315786,"contribution_to_rpc_difference":-1.6995860888160281}],"seg":[{"dimension":"acquisition_channel","segment":"1","control_n":1027,"treatment_n":1008,"control_rpc":4.922288218111002,"treatment_rpc":2.8038968253968255,"rpc_difference":-2.1183913927141766,"ci_low":-3.5763630945196514,"ci_high":-0.6604196909087017,"p_value":0.004426878314905148,"variance":0.5525812995208422,"purchase_rate_difference":-0.01363290366454923,"p_holm_12":0.05312253977886178},{"dimension":"acquisition_channel","segment":"2","control_n":515,"treatment_n":544,"control_rpc":9.814912621359223,"treatment_rpc":10.895294117647058,"rpc_difference":1.0803814962878349,"ci_low":-2.249690310567568,"ci_high":4.410453303143237,"p_value":0.5245122172318606,"variance":2.879987055478764,"purchase_rate_difference":0.050049971444888625,"p_holm_12":1.0},{"dimension":"acquisition_channel","segment":"3","control_n":785,"treatment_n":767,"control_rpc":9.171783439490445,"treatment_rpc":10.33734550195567,"rpc_difference":1.1655620624652254,"ci_low":-1.4704140230414424,"ci_high":3.8015381479718933,"p_value":0.3858960530158355,"variance":1.8059271895604723,"purchase_rate_difference":0.026547305657745046,"p_holm_12":1.0},{"dimension":"acquisition_channel","segment":"4","control_n":113,"treatment_n":125,"control_rpc":11.179557522123893,"treatment_rpc":11.51808,"rpc_difference":0.338522477876106,"ci_low":-6.687422861266178,"ci_high":7.36446781701839,"p_value":0.9244437938095167,"variance":12.712843734048828,"purchase_rate_difference":0.0415575221238938,"p_holm_12":1.0},{"dimension":"acquisition_channel","segment":"5","control_n":58,"treatment_n":58,"control_rpc":14.85948275862069,"treatment_rpc":12.756689655172414,"rpc_difference":-2.102793103448276,"ci_low":-12.987045003483514,"ci_high":8.781458796586962,"p_value":0.7022898176050792,"variance":30.090361882908816,"purchase_rate_difference":0.03448275862068967,"p_holm_12":1.0},{"dimension":"cart_last_visit","segment":"0","control_n":1749,"treatment_n":1787,"control_rpc":5.481686678101772,"treatment_rpc":4.7421555679910465,"rpc_difference":-0.7395311101107254,"ci_low":-1.9981289396515718,"ci_high":0.5190667194301211,"p_value":0.24937976714496352,"variance":0.4120649033198013,"purchase_rate_difference":0.007348671220871919,"p_holm_12":1.0},{"dimension":"cart_last_visit","segment":"1","control_n":749,"treatment_n":715,"control_rpc":13.147383177570093,"treatment_rpc":14.52801118881119,"rpc_difference":1.3806280112410967,"ci_low":-1.8260101195412606,"ci_high":4.587266142023454,"p_value":0.39848989377091387,"variance":2.6722860383203324,"purchase_rate_difference":0.04633310614619027,"p_holm_12":1.0},{"dimension":"purchase_history","segment":"no_prior_purchase","control_n":839,"treatment_n":826,"control_rpc":3.1556138259833135,"treatment_rpc":3.6846489104116222,"rpc_difference":0.5290350844283087,"ci_low":-0.8632675890646344,"ci_high":1.9213377579212518,"p_value":0.4562123048583945,"variance":0.5038934708562155,"purchase_rate_difference":0.016526361660803388,"p_holm_12":1.0},{"dimension":"purchase_history","segment":"prior_purchaser","control_n":1659,"treatment_n":1676,"control_rpc":10.118927064496685,"treatment_rpc":9.438090692124105,"rpc_difference":-0.6808363723725801,"ci_low":-2.502626157069095,"ci_high":1.1409534123239347,"p_value":0.46376659409722787,"variance":0.8633373328420704,"purchase_rate_difference":0.016524101559296872,"p_holm_12":1.0},{"dimension":"recency_weeks","segment":"0-2","control_n":1080,"treatment_n":1044,"control_rpc":10.870000000000001,"treatment_rpc":10.222858237547893,"rpc_difference":-0.6471417624521081,"ci_low":-3.0297487045597964,"ci_high":1.7354651796555802,"p_value":0.5943303882394497,"variance":1.4760859053184605,"purchase_rate_difference":0.013697318007662829,"p_holm_12":1.0},{"dimension":"recency_weeks","segment":"3-4","control_n":567,"treatment_n":579,"control_rpc":6.111887125220458,"treatment_rpc":6.865243523316062,"rpc_difference":0.7533563980956037,"ci_low":-1.6739311457441488,"ci_high":3.1806439419353563,"p_value":0.5426734228773898,"variance":1.5304769522402424,"purchase_rate_difference":0.024042547358609542,"p_holm_12":1.0},{"dimension":"recency_weeks","segment":"5+","control_n":851,"treatment_n":879,"control_rpc":4.970411280846063,"treatment_rpc":4.794220705346985,"rpc_difference":-0.1761905754990778,"ci_low":-1.9216295060295672,"ci_high":1.5692483550314116,"p_value":0.8430768952510338,"variance":0.791912059688976,"purchase_rate_difference":0.019481865007907453,"p_holm_12":1.0}],"het":[{"dimension":"acquisition_channel","df":4,"chi_square":6.544095857565225,"p_value":0.16203310578935426,"p_holm_4":0.648132423157417},{"dimension":"cart_last_visit","df":1,"chi_square":1.457381077868211,"p_value":0.22734727873404975,"p_holm_4":0.6820418362021492},{"dimension":"purchase_history","df":1,"chi_square":1.0706231442577467,"p_value":0.30080473470275043,"p_holm_4":0.6820418362021492},{"dimension":"recency_weeks","df":2,"chi_square":0.6827789783125755,"p_value":0.7107820123996391,"p_holm_4":0.7107820123996391}],"popcmp":[{"segment":"cart","experiment_share":0.2928,"next_share":0.2901666666666667,"next_customers":1741},{"segment":"no_prior_purchase","experiment_share":0.333,"next_share":0.3288333333333333,"next_customers":1973},{"segment":"channel_1","experiment_share":0.407,"next_share":0.4023333333333333,"next_customers":2414},{"segment":"channel_2","experiment_share":0.2118,"next_share":0.21933333333333332,"next_customers":1316},{"segment":"channel_3","experiment_share":0.3104,"next_share":0.30383333333333334,"next_customers":1823},{"segment":"channel_4","experiment_share":0.0476,"next_share":0.047,"next_customers":282},{"segment":"channel_5","experiment_share":0.0232,"next_share":0.0275,"next_customers":165}],"profit":[{"population":"all","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.0,"profit_difference":-0.07244852188705364,"ci_low":-0.46555314853708907,"ci_high":0.3206561047629818},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.0,"profit_difference":-1.5801831341972061,"ci_low":-1.8842312066851277,"ci_high":-1.2761350617092846},{"population":"all","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.1,"profit_difference":-0.17244852188705417,"ci_low":-0.5655531485370896,"ci_high":0.22065610476298125},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.1,"profit_difference":-1.6801831341972058,"ci_low":-1.9842312066851273,"ci_high":-1.3761350617092842},{"population":"all","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.5,"profit_difference":-0.5724485218870539,"ci_low":-0.9655531485370893,"ci_high":-0.17934389523701844},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.5,"profit_difference":-2.080183134197206,"ci_low":-2.3842312066851274,"ci_high":-1.7761350617092846},{"population":"all","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.0,"profit_difference":-0.12074753647842318,"ci_low":-0.7759219142284823,"ci_high":0.534426841271636},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.0,"profit_difference":-1.6284821487885752,"ci_low":-2.1808065890362736,"ci_high":-1.0761577085408771},{"population":"all","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.1,"profit_difference":-0.22074753647842416,"ci_low":-0.8759219142284832,"ci_high":0.4344268412716349},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.1,"profit_difference":-1.7284821487885758,"ci_low":-2.280806589036274,"ci_high":-1.1761577085408776},{"population":"all","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.5,"profit_difference":-0.6207475364784232,"ci_low":-1.2759219142284823,"ci_high":0.03442684127163598},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.5,"profit_difference":-2.1284821487885752,"ci_low":-2.6808065890362736,"ci_high":-1.5761577085408771},{"population":"all","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.0,"profit_difference":-0.16904655106979227,"ci_low":-1.086290679919875,"ci_high":0.7481975777802904},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.0,"profit_difference":-1.6767811633799448,"ci_low":-2.4861245493363575,"ci_high":-0.867437777423532},{"population":"all","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.1,"profit_difference":-0.2690465510697919,"ci_low":-1.1862906799198747,"ci_high":0.6481975777802909},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.1,"profit_difference":-1.7767811633799444,"ci_low":-2.586124549336357,"ci_high":-0.9674377774235317},{"population":"all","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.5,"profit_difference":-0.6690465510697923,"ci_low":-1.586290679919875,"ci_high":0.2481975777802904},{"population":"all","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.5,"profit_difference":-2.1767811633799443,"ci_low":-2.986124549336357,"ci_high":-1.3674377774235316},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.0,"profit_difference":0.4141884033723291,"ci_low":-0.547803035862378,"ci_high":1.3761798426070362},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.0,"profit_difference":-2.491413834389909,"ci_low":-3.202772514100176,"ci_high":-1.7800551546796415},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.1,"profit_difference":0.31418840337232856,"ci_low":-0.6478030358623785,"ci_high":1.2761798426070357},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.1,"profit_difference":-2.591413834389909,"ci_low":-3.3027725141001762,"ci_high":-1.8800551546796416},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.3,"contact_cost":0.5,"profit_difference":-0.08581159662767046,"ci_low":-1.0478030358623776,"ci_high":0.8761798426070367},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.3,"contact_cost":0.5,"profit_difference":-2.991413834389909,"ci_low":-3.702772514100176,"ci_high":-2.2800551546796415},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.0,"profit_difference":0.6903140056205466,"ci_low":-0.9130050597706318,"ci_high":2.293633071011725},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.0,"profit_difference":-2.21528823214169,"ci_low":-3.5311064841576667,"ci_high":-0.8994699801257133},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.1,"profit_difference":0.5903140056205478,"ci_low":-1.0130050597706306,"ci_high":2.1936330710117264},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.1,"profit_difference":-2.3152882321416905,"ci_low":-3.6311064841576672,"ci_high":-0.9994699801257139},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.5,"contact_cost":0.5,"profit_difference":0.19031400562054657,"ci_low":-1.4130050597706318,"ci_high":1.793633071011725},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.5,"contact_cost":0.5,"profit_difference":-2.7152882321416896,"ci_low":-4.031106484157666,"ci_high":-1.3994699801257127},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.0,"profit_difference":0.966439607868768,"ci_low":-1.2782070836788817,"ci_high":3.2110862994164178},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.0,"profit_difference":-1.9391626298934712,"ci_low":-3.883192752124533,"ci_high":0.004867492337590651},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.1,"profit_difference":0.8664396078687684,"ci_low":-1.3782070836788813,"ci_high":3.111086299416418},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.1,"profit_difference":-2.039162629893471,"ci_low":-3.9831927521245327,"ci_high":-0.095132507662409},{"population":"cart_candidate","accounting":"net_revenue_assumed","margin":0.7,"contact_cost":0.5,"profit_difference":0.46643960786876804,"ci_low":-1.7782070836788817,"ci_high":2.7110862994164178},{"population":"cart_candidate","accounting":"gross_revenue_all_treatment_discounted","margin":0.7,"contact_cost":0.5,"profit_difference":-2.439162629893471,"ci_low":-4.383192752124533,"ci_high":-0.49513250766240935}],"power":[{"population":"all","power":0.8,"absolute_revenue_mde":0.5,"n_per_arm":35063,"total_n":70126,"available_customers":6000,"feasible":false,"approximate_mde_with_available":1.7093431596798732},{"population":"all","power":0.8,"absolute_revenue_mde":1.0,"n_per_arm":8766,"total_n":17532,"available_customers":6000,"feasible":false,"approximate_mde_with_available":1.7093431596798732},{"population":"all","power":0.8,"absolute_revenue_mde":2.0,"n_per_arm":2192,"total_n":4384,"available_customers":6000,"feasible":true,"approximate_mde_with_available":1.7093431596798732},{"population":"all","power":0.9,"absolute_revenue_mde":0.5,"n_per_arm":46939,"total_n":93878,"available_customers":6000,"feasible":false,"approximate_mde_with_available":1.9777597328505467},{"population":"all","power":0.9,"absolute_revenue_mde":1.0,"n_per_arm":11735,"total_n":23470,"available_customers":6000,"feasible":false,"approximate_mde_with_available":1.9777597328505467},{"population":"all","power":0.9,"absolute_revenue_mde":2.0,"n_per_arm":2934,"total_n":5868,"available_customers":6000,"feasible":true,"approximate_mde_with_available":1.9777597328505467},{"population":"cart_candidate","power":0.8,"absolute_revenue_mde":0.5,"n_per_arm":61384,"total_n":122768,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.1986646346297904},{"population":"cart_candidate","power":0.8,"absolute_revenue_mde":1.0,"n_per_arm":15346,"total_n":30692,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.1986646346297904},{"population":"cart_candidate","power":0.8,"absolute_revenue_mde":2.0,"n_per_arm":3837,"total_n":7674,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.1986646346297904},{"population":"cart_candidate","power":0.9,"absolute_revenue_mde":0.5,"n_per_arm":82175,"total_n":164350,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.857977053401976},{"population":"cart_candidate","power":0.9,"absolute_revenue_mde":1.0,"n_per_arm":20544,"total_n":41088,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.857977053401976},{"population":"cart_candidate","power":0.9,"absolute_revenue_mde":2.0,"n_per_arm":5136,"total_n":10272,"available_customers":1741,"feasible":false,"approximate_mde_with_available":4.857977053401976}],"ext":{"srm_assumed_allocation":"1:1; protocol not independently verified","srm_p":0.9548888938548752,"max_abs_baseline_smd":0.03278553088169405,"revenue_bootstrap_95_ci":[-1.5515084897174332,1.0810229530386914],"bootstrap_replicates":4000,"bootstrap_seed":20261001,"candidate_rule":"shopping_cart = 1; exploratory, not validated","candidate_next_n":1741,"multiple_testing":"Holm across 12 revenue subgroups; separately Holm across 4 omnibus interaction tests","validation":"SQL moments independently reconciled; decomposition identity passed; source unmodified"}};
+
+/* ---------- helpers ---------- */
+const NS='http://www.w3.org/2000/svg', MINUS='−';
+function s(tag,attrs,...kids){const e=document.createElementNS(NS,tag);for(const k in (attrs||{})){if(attrs[k]!=null)e.setAttribute(k,attrs[k]);}kids.flat().forEach(c=>{if(c==null)return;e.append(typeof c==='string'?document.createTextNode(c):c);});return e;}
+function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in (attrs||{})){if(k==='class')e.className=attrs[k];else if(k==='text')e.textContent=attrs[k];else if(attrs[k]!=null)e.setAttribute(k,attrs[k]);}kids.flat().forEach(c=>{if(c==null)return;e.append(typeof c==='string'?document.createTextNode(c):c);});return e;}
+const $=id=>document.getElementById(id);
+function fix(x,d){return Number(Math.abs(x).toFixed(d)).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function num(x,d=3){const z=Number(Math.abs(x).toFixed(d))===0;return (x<0&&!z?MINUS:'')+fix(x,d);}
+function sg(x,d=3){const z=Number(Math.abs(x).toFixed(d))===0;return (x<0&&!z?MINUS:'+')+fix(x,d);}
+function pc(x,d=2){return fix(x*100,d)+'%';}
+function spp(x,d=2){return sg(x*100,d)+' pp';}
+function spc(x,d=1){return sg(x*100,d)+'%';}
+function it(x){return Math.round(x).toLocaleString('en-US');}
+function pv(p){return p<0.001?'<0.001':p.toFixed(3);}
+function clear(el){while(el.firstChild)el.removeChild(el.firstChild);}
+function td(text,cls){const e=h('td',cls?{class:cls}:{});e.textContent=text;return e;}
+function fillBody(tbl,rows){const tb=tbl.querySelector('tbody');clear(tb);rows.forEach(r=>{const tr=h('tr',r.cls?{class:r.cls}:{});r.cells.forEach(c=>tr.append(td(c[0],c[1])));tb.append(tr);});}
+
+/* ---------- data views ---------- */
+const OV={};D.overall.forEach(r=>OV[r.metric]=r);
+const REV=OV.revenue_after,PUR=OV.purchased,TRN=OV.trans_after;
+const KPI={};D.kpi.forEach(r=>KPI[r.test_coupon]=r);
+const DEC={};D.decomp.forEach(r=>DEC[r.driver]=r);
+const SEG=D.seg;
+const segOf=(dim,id)=>SEG.find(r=>r.dimension===dim&&r.segment===id);
+const CART=segOf('cart_last_visit','1'),GOOG=segOf('acquisition_channel','1');
+const POPCMP={};D.popcmp.forEach(r=>POPCMP[r.segment]=r);
+const PROF=(pop,acc,m,c)=>D.profit.find(r=>r.population===pop&&r.accounting===acc&&Math.abs(r.margin-m)<1e-9&&Math.abs(r.contact_cost-c)<1e-9);
+const PWR=(pop,pw,mde)=>D.power.find(r=>r.population===pop&&Math.abs(r.power-pw)<1e-9&&Math.abs(r.absolute_revenue_mde-mde)<1e-9);
+const MARGINS=[0.3,0.5,0.7],COSTS=[0,0.1,0.5];
+const CHAN={ '1':'Google','2':'Facebook','3':'Instagram','4':'Referral','5':'Other'};
+const DIM_LABEL={acquisition_channel:'Acquisition channel',purchase_history:'Purchase history',cart_last_visit:'Cart status',recency_weeks:'Weeks since last visit'};
+const SEG_LABEL={
+  acquisition_channel:{'1':'Google (code 1)','2':'Facebook (code 2)','3':'Instagram (code 3)','4':'Referral (code 4)','5':'Other (code 5)'},
+  purchase_history:{no_prior_purchase:'No prior purchase',prior_purchaser:'Prior purchaser'},
+  cart_last_visit:{'0':'No abandoned cart','1':'Abandoned cart'},
+  recency_weeks:{'0-2':'0-2 weeks','3-4':'3-4 weeks','5+':'5+ weeks'}};
+const segLabel=r=>SEG_LABEL[r.dimension][r.segment];
+
+const nExp=KPI[0].customers+KPI[1].customers;
+const nNext=D.dq.find(r=>r.source==='next_campaign').rows;
+const cartNext=POPCMP.cart.next_customers;
+const holmMin=Math.min(...SEG.map(r=>r.p_holm_12));
+const hetP=D.het.map(r=>r.p_holm_4);
+const cartA=MARGINS.flatMap(m=>COSTS.map(c=>PROF('cart_candidate','net_revenue_assumed',m,c)));
+const cartB=MARGINS.flatMap(m=>COSTS.map(c=>PROF('cart_candidate','gross_revenue_all_treatment_discounted',m,c)));
+const allA=MARGINS.flatMap(m=>COSTS.map(c=>PROF('all','net_revenue_assumed',m,c)));
+const allB=MARGINS.flatMap(m=>COSTS.map(c=>PROF('all','gross_revenue_all_treatment_discounted',m,c)));
+const maxSmd=D.ext.max_abs_baseline_smd;
+
+const V={
+  n_exp:it(nExp),n_next:it(nNext),
+  rev_c:num(REV.control_mean),rev_t:num(REV.treatment_mean),rev_diff:sg(REV.difference),rev_lo:sg(REV.ci_low),rev_hi:sg(REV.ci_high),rev_p:pv(REV.p_value),
+  rev_rel_lo:spc(REV.ci_low/REV.control_mean),rev_rel_hi:spc(REV.ci_high/REV.control_mean),
+  boot_lo:sg(D.ext.revenue_bootstrap_95_ci[0]),boot_hi:sg(D.ext.revenue_bootstrap_95_ci[1]),
+  pur_c:pc(PUR.control_mean),pur_t:pc(PUR.treatment_mean),pur_diff:spp(PUR.difference),pur_lo:spp(PUR.ci_low),pur_hi:spp(PUR.ci_high),pur_p:pv(PUR.p_value),
+  trn_c:num(TRN.control_mean),trn_t:num(TRN.treatment_mean),trn_diff:sg(TRN.difference),trn_lo:sg(TRN.ci_low),trn_hi:sg(TRN.ci_high),trn_p:pv(TRN.p_value),
+  rpt_c:num(KPI[0].revenue_per_transaction,2),rpt_t:num(KPI[1].revenue_per_transaction,2),
+  d_pr:sg(DEC.purchase_rate.contribution_to_rpc_difference),d_tpp:sg(DEC.transactions_per_purchaser.contribution_to_rpc_difference),d_rpt:sg(DEC.revenue_per_transaction.contribution_to_rpc_difference),
+  d_tot:sg(REV.difference),
+  d_round_sum:sg(['purchase_rate','transactions_per_purchaser','revenue_per_transaction'].reduce((a,k)=>a+Number(DEC[k].contribution_to_rpc_difference.toFixed(3)),0)),
+  cart_next_n:it(cartNext),cart_next_share:pc(POPCMP.cart.next_share),cart_exp_share:pc(POPCMP.cart.experiment_share),
+  max_smd:num(maxSmd),srm_p:pv(D.ext.srm_p),
+  cart_diff:sg(CART.rpc_difference),cart_lo:sg(CART.ci_low),cart_hi:sg(CART.ci_high),cart_lo_abs:num(Math.abs(CART.ci_low)),cart_holm:pv(CART.p_holm_12),
+  goog_diff:sg(GOOG.rpc_difference),goog_lo:sg(GOOG.ci_low),goog_hi:sg(GOOG.ci_high),goog_raw:pv(GOOG.p_value),goog_holm:pv(GOOG.p_holm_12),
+  min_holm:pv(holmMin),het_min:pv(Math.min(...hetP)),het_max:pv(Math.max(...hetP)),
+  cartA_pos:cartA.filter(r=>r.profit_difference>0).length+' of '+cartA.length,
+  cartB_neg:cartB.filter(r=>r.profit_difference<0).length+' of '+cartB.length,
+  mde_cart80:num(PWR('cart_candidate',0.8,1).approximate_mde_with_available,2),
+  tgt1:'+1.00',n_cart_1:it(PWR('cart_candidate',0.8,1).total_n),
+  n_cart_1_mult:(PWR('cart_candidate',0.8,1).total_n/cartNext).toFixed(1)
+};
+document.querySelectorAll('[data-k]').forEach(e=>{const k=e.dataset.k;e.textContent=(k in V)?V[k]:'??'+k;});
+
+/* ---------- tooltip ---------- */
+const tip=$('tip');
+function showTip(x,y,title,lines){clear(tip);tip.append(h('div',{class:'tt',text:title}));lines.forEach(l=>{tip.append(h('div',{class:'tr'},h('span',{text:l[0]}),h('span',{text:l[1]})));});tip.style.display='block';const r=tip.getBoundingClientRect();let px=x+14,py=y+14;if(px+r.width>innerWidth-8)px=x-r.width-14;if(px<8)px=8;if(py+r.height>innerHeight-8)py=y-r.height-14;if(py<8)py=8;tip.style.left=px+'px';tip.style.top=py+'px';}
+function hideTip(){tip.style.display='none';}
+function bindTip(el,fn){el.addEventListener('pointermove',e=>{const t=fn(e);if(t)showTip(e.clientX,e.clientY,t.title,t.lines);});el.addEventListener('pointerleave',hideTip);el.addEventListener('focus',()=>{const b=el.getBoundingClientRect();const t=fn({clientX:b.left+b.width/2,clientY:b.top+b.height/2,focus:true});if(t)showTip(b.left+Math.min(b.width/2,240),b.top+b.height/2,t.title,t.lines);});el.addEventListener('blur',hideTip);}
+
+/* ---------- charts registry ---------- */
+const charts=[];
+function register(el,draw){const c={el,draw,w:0};charts.push(c);const run=()=>{const w=Math.round(el.clientWidth);if(w>0){c.w=w;clear(el);draw(w);}};c.run=run;run();return c;}
+let rsz=null;const ro=new ResizeObserver(()=>{cancelAnimationFrame(rsz);rsz=requestAnimationFrame(()=>charts.forEach(c=>{const w=Math.round(c.el.clientWidth);if(w>0&&w!==c.w)c.run();}));});
+function track(c){ro.observe(c.el);return c;}
+
+/* ---------- forest / dot plot ---------- */
+function forest(el,W,rows,o){
+  const narrow=W<640;
+  const labW=o.labW!=null?o.labW:(narrow?Math.min(150,W*0.38):230);
+  const rightW=o.showValues&&!narrow?(o.rightW||158):0;
+  const padR=16,rowH=o.rowH||36,grpH=28,top=6,axisH=o.noAxisTitle?26:44;
+  let y=top;const pos=[];
+  rows.forEach((r,i)=>{if(o.grouped&&(i===0||rows[i-1].group!==r.group)){pos.push({grp:r.group,y});y+=grpH;}pos.push({r,y,i});y+=rowH;});
+  const H=y+axisH;const x0=labW,x1=W-rightW-padR;
+  const xs=v=>x0+(v-o.xmin)/(o.xmax-o.xmin)*(x1-x0);
+  const svg=s('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H,role:'img','aria-label':o.aria||'Chart'});
+  (o.ticks||[]).forEach(t=>{svg.append(s('line',{x1:xs(t),x2:xs(t),y1:top,y2:y,class:'gl'}));svg.append(s('text',{x:xs(t),y:y+16,'text-anchor':'middle',class:'ax'},o.tickFmt?o.tickFmt(t):String(t)));});
+  svg.append(s('line',{x1:xs(0),x2:xs(0),y1:top,y2:y,class:'zl'}));
+  if(o.xTitle)svg.append(s('text',{x:narrow?W/2:(x0+x1)/2,y:y+36,'text-anchor':'middle',class:'ax'},narrow&&o.xTitleS?o.xTitleS:o.xTitle));
+  pos.forEach(p=>{
+    if(p.grp){svg.append(s('text',{x:0,y:p.y+19,class:'grp'},p.grp));return;}
+    const r=p.r,cy=p.y+rowH/2;
+    if(r.hl)svg.append(s('rect',{x:0,y:p.y,width:W,height:rowH,class:'hlband',rx:6}));
+    const hit=s('rect',{x:0,y:p.y,width:W,height:rowH,class:'hit',tabindex:0,role:'img','aria-label':o.rowAria?o.rowAria(r):r.label,rx:6});
+    svg.append(hit);
+    if(labW>40){
+      if(narrow&&r.sub){svg.append(s('text',{x:o.grouped?8:0,y:cy-3,class:'lbl'},r.label));svg.append(s('text',{x:o.grouped?8:0,y:cy+12,class:'lbl2'},r.sub));}
+      else{svg.append(s('text',{x:o.grouped?8:0,y:cy+(r.sub?-2:4.5),class:'lbl'},r.label));if(r.sub)svg.append(s('text',{x:o.grouped?8:0,y:cy+12,class:'lbl2'},r.sub));}
+    }
+    if(r.lo!=null&&r.hi!=null&&r.lo!==r.hi)svg.append(s('line',{x1:xs(r.lo),x2:xs(r.hi),y1:cy,y2:cy,stroke:r.color||'var(--s1)','stroke-width':2,'stroke-linecap':'round','pointer-events':'none'}));
+    svg.append(s('circle',{cx:xs(r.est),cy,r:5,fill:r.color||'var(--s1)',stroke:'var(--surface)','stroke-width':2,'pointer-events':'none'}));
+    if(rightW>0){const rx=x1+padR+4;svg.append(s('text',{x:rx,y:cy-2,class:'val','pointer-events':'none'},o.valFmt(r.est)));if(r.lo!=null&&r.hi!=null&&r.lo!==r.hi)svg.append(s('text',{x:rx,y:cy+12,class:'lbl2','pointer-events':'none'},o.valFmt(r.lo)+' to '+o.valFmt(r.hi)));}
+    bindTip(hit,()=>({title:r.tipTitle||r.label,lines:r.tip}));
+  });
+  el.append(svg);
+}
+
+/* ---------- section 2: strips ---------- */
+function strip(id,m,fmtV,xmin,xmax,ticks,tickFmt,scale){
+  const el=$(id);
+  track(register(el,W=>{forest(el,W,[{label:'Coupon minus control',est:m.difference*scale,lo:m.ci_low*scale,hi:m.ci_high*scale,
+      tipTitle:'Coupon minus control',tip:[['Difference',fmtV(m.difference*scale)],['95% CI',fmtV(m.ci_low*scale)+' to '+fmtV(m.ci_high*scale)],['Two-sided p',pv(m.p_value)],['Control mean',m.control_mean_txt],['Coupon mean',m.treatment_mean_txt]]}],
+    {labW:12,rowH:44,xmin,xmax,ticks,tickFmt,noAxisTitle:true,aria:'Estimate and 95% confidence interval for coupon minus control'});}));
+}
+REV.control_mean_txt=num(REV.control_mean);REV.treatment_mean_txt=num(REV.treatment_mean);
+PUR.control_mean_txt=pc(PUR.control_mean);PUR.treatment_mean_txt=pc(PUR.treatment_mean);
+TRN.control_mean_txt=num(TRN.control_mean);TRN.treatment_mean_txt=num(TRN.treatment_mean);
+strip('strip-rev',REV,v=>sg(v),-2.4,2.4,[-2,-1,0,1,2],t=>num(t,0),1);
+strip('strip-pur',PUR,v=>sg(v,2)+' pp',-1,4,[-1,0,1,2,3,4],t=>num(t,0),100);
+strip('strip-trn',TRN,v=>sg(v),-0.02,0.07,[-0.02,0,0.02,0.04,0.06],t=>num(t,2),1);
+
+fillBody($('tbl-overall'),[
+  {cells:[['Revenue per customer'],['Recorded revenue ÷ assigned customers'],[num(REV.control_mean),'num'],[num(REV.treatment_mean),'num'],[sg(REV.difference),'num'],[sg(REV.ci_low)+' to '+sg(REV.ci_high),'num'],[pv(REV.p_value),'num'],['Primary']]},
+  {cells:[['Purchase rate'],['Purchasers ÷ assigned customers'],[pc(PUR.control_mean),'num'],[pc(PUR.treatment_mean),'num'],[spp(PUR.difference),'num'],[spp(PUR.ci_low)+' to '+spp(PUR.ci_high),'num'],[pv(PUR.p_value),'num'],['Secondary']]},
+  {cells:[['Transactions per customer'],['Transactions ÷ assigned customers'],[num(TRN.control_mean),'num'],[num(TRN.treatment_mean),'num'],[sg(TRN.difference),'num'],[sg(TRN.ci_low)+' to '+sg(TRN.ci_high),'num'],[pv(TRN.p_value),'num'],['Secondary, unadjusted']]}
+]);
+fillBody($('tbl-counts'),[0,1].map(k=>({cells:[[k===0?'Control (no coupon)':'Coupon offered'],[it(KPI[k].customers),'num'],[it(KPI[k].purchasers),'num'],[it(KPI[k].transactions),'num'],[fix(KPI[k].revenue,2),'num'],[it(KPI[k].purchasers)+' ÷ '+it(KPI[k].customers)+' = '+pc(KPI[k].purchase_rate),'num'],[it(KPI[k].transactions)+' ÷ '+it(KPI[k].customers)+' = '+num(KPI[k].transactions/KPI[k].customers),'num']]})));
+
+/* ---------- section 3: tree + decomposition ---------- */
+(function(){
+  const t=$('tree');
+  function node(cls,label,formula,c,t1,fmtv,rel){
+    return h('div',{class:'node '+cls},h('div',{class:'nl',text:label}),h('div',{class:'nf',text:formula}),
+      h('div',{class:'nv'},h('span',{text:fmtv(c)+' '}),h('span',{class:'muted',text:'to '}),h('b',{text:fmtv(t1)})),
+      h('div',{class:'nc',text:'Control to coupon · '+spc(rel,1)}));
+  }
+  const c=KPI[0],k=KPI[1];
+  t.append(node('root','Revenue per customer','recorded revenue ÷ assigned customers',c.revenue_per_customer,k.revenue_per_customer,v=>num(v),k.revenue_per_customer/c.revenue_per_customer-1));
+  t.append(h('div',{class:'op',text:'='}));
+  t.append(node('','Purchase rate','purchasers ÷ assigned customers',c.purchase_rate,k.purchase_rate,v=>pc(v),k.purchase_rate/c.purchase_rate-1));
+  t.append(h('div',{class:'op',text:'×'}));
+  t.append(node('','Transactions per purchaser','transactions ÷ purchasers',c.transactions_per_purchaser,k.transactions_per_purchaser,v=>num(v),k.transactions_per_purchaser/c.transactions_per_purchaser-1));
+  t.append(h('div',{class:'op',text:'×'}));
+  t.append(node('','Revenue per transaction','recorded revenue ÷ transactions',c.revenue_per_transaction,k.revenue_per_transaction,v=>num(v,2),k.revenue_per_transaction/c.revenue_per_transaction-1));
+})();
+(function(){
+  const rows=[
+    {label:'Purchase rate',key:'purchase_rate',sub:'More customers bought'},
+    {label:'Transactions per purchaser',key:'transactions_per_purchaser',sub:'Buyers made more orders'},
+    {label:'Revenue per transaction',key:'revenue_per_transaction',sub:'Each order was worth less'}
+  ].map(r=>({...r,val:DEC[r.key].contribution_to_rpc_difference,ctl:DEC[r.key].control,trt:DEC[r.key].treatment}));
+  rows.push({label:'Net difference',sub:'Coupon minus control',val:REV.difference,total:true});
+  const el=$('chart-decomp');
+  track(register(el,W=>{
+    const narrow=W<640,labW=narrow?130:230,padR=64,rowH=48,top=6,axisH=44,bh=22;
+    const xmin=-2.4,xmax=1.8,x0=labW,x1=W-padR;const xs=v=>x0+(v-xmin)/(xmax-xmin)*(x1-x0);
+    const H=top+rowH*rows.length+axisH;
+    const svg=s('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H,role:'img','aria-label':'Contribution of each factor to the revenue-per-customer difference'});
+    [-2,-1,0,1].forEach(t=>{svg.append(s('line',{x1:xs(t),x2:xs(t),y1:top,y2:top+rowH*rows.length,class:'gl'}));svg.append(s('text',{x:xs(t),y:top+rowH*rows.length+16,'text-anchor':'middle',class:'ax'},num(t,0)));});
+    svg.append(s('line',{x1:xs(0),x2:xs(0),y1:top,y2:top+rowH*rows.length,class:'zl'}));
+    svg.append(s('text',{x:narrow?W/2:(x0+x1)/2,y:top+rowH*rows.length+36,'text-anchor':'middle',class:'ax'},narrow?'Contribution to revenue per customer':'Contribution to revenue per customer (recorded revenue units)'));
+    rows.forEach((r,i)=>{
+      const y=top+i*rowH,cy=y+rowH/2;
+      if(i===rows.length-1)svg.append(s('line',{x1:0,x2:W,y1:y,y2:y,class:'gl'}));
+      const hit=s('rect',{x:0,y:y,width:W,height:rowH,class:'hit',tabindex:0,role:'img','aria-label':r.label+' '+sg(r.val),rx:6});svg.append(hit);
+      svg.append(s('text',{x:0,y:cy-(narrow?0:2),class:'lbl','font-weight':r.total?'700':'400'},r.label));
+      if(!narrow)svg.append(s('text',{x:0,y:cy+13,class:'lbl2'},r.sub));
+      const a=xs(0),b=xs(r.val),L=Math.min(a,b),Rr=Math.max(a,b),w=Rr-L,rad=4,yy=cy-bh/2;
+      const fill=r.total?'var(--ink2)':(r.val>=0?'var(--s1)':'var(--neg)');
+      let d;
+      if(r.val>=0)d=`M${L},${yy}H${Rr-rad}Q${Rr},${yy} ${Rr},${yy+rad}V${yy+bh-rad}Q${Rr},${yy+bh} ${Rr-rad},${yy+bh}H${L}Z`;
+      else d=`M${Rr},${yy}H${L+rad}Q${L},${yy} ${L},${yy+rad}V${yy+bh-rad}Q${L},${yy+bh} ${L+rad},${yy+bh}H${Rr}Z`;
+      svg.append(s('path',{d,fill,'pointer-events':'none'}));
+      const lx=r.val>=0?Rr+8:L-8,anc=r.val>=0?'start':'end';
+      svg.append(s('text',{x:lx,y:cy+4.5,'text-anchor':anc,class:'val','pointer-events':'none'},sg(r.val)));
+      const lines=r.total?[['Net difference',sg(r.val)],['Control revenue per customer',num(KPI[0].revenue_per_customer)],['Coupon revenue per customer',num(KPI[1].revenue_per_customer)]]
+        :[['Contribution',sg(r.val)],['Control value',r.key==='purchase_rate'?pc(r.ctl):num(r.ctl,r.key==='revenue_per_transaction'?2:3)],['Coupon value',r.key==='purchase_rate'?pc(r.trt):num(r.trt,r.key==='revenue_per_transaction'?2:3)]];
+      bindTip(hit,()=>({title:r.label,lines}));
+    });
+    el.append(svg);
+  }));
+  fillBody($('tbl-decomp'),rows.filter(r=>!r.total).map(r=>({cells:[[r.label],[r.key==='purchase_rate'?pc(r.ctl):num(r.ctl,r.key==='revenue_per_transaction'?2:3),'num'],[r.key==='purchase_rate'?pc(r.trt):num(r.trt,r.key==='revenue_per_transaction'?2:3),'num'],[sg(r.val),'num']]})).concat([{cells:[['Net difference'],[num(KPI[0].revenue_per_customer),'num'],[num(KPI[1].revenue_per_customer),'num'],[sg(REV.difference),'num']]}]));
+})();
+
+/* ---------- section 4: segments ---------- */
+const segState={dim:'all'};
+function segRows(){return SEG.filter(r=>segState.dim==='all'||r.dimension===segState.dim);}
+function segCtl(){
+  const box=$('ctl-dim');clear(box);
+  [['all','All four']].concat(Object.keys(DIM_LABEL).map(k=>[k,DIM_LABEL[k]])).forEach(([k,l])=>{const b=h('button',{type:'button','aria-pressed':String(segState.dim===k),text:l});b.addEventListener('click',()=>{segState.dim=k;segCtl();segRender();});box.append(b);});
+}
+const segChart=register($('chart-seg'),W=>segDraw(W));track(segChart);
+function segDraw(W){
+  const rows=segRows().map(r=>({label:segLabel(r),sub:'n '+it(r.control_n)+' control / '+it(r.treatment_n)+' coupon',est:r.rpc_difference,lo:r.ci_low,hi:r.ci_high,group:DIM_LABEL[r.dimension],
+    hl:r.dimension==='cart_last_visit'&&r.segment==='1',
+    tipTitle:DIM_LABEL[r.dimension]+': '+segLabel(r),
+    tip:[['Difference',sg(r.rpc_difference)],['95% CI (pointwise)',sg(r.ci_low)+' to '+sg(r.ci_high)],['Control / coupon n',it(r.control_n)+' / '+it(r.treatment_n)],['Control mean',num(r.control_rpc)],['Coupon mean',num(r.treatment_rpc)],['Unadjusted p',pv(r.p_value)],['Holm-adjusted p',pv(r.p_holm_12)]]}));
+  forest($('chart-seg'),W,rows,{grouped:segState.dim==='all'||true,xmin:-14,xmax:10,ticks:[-12,-8,-4,0,4,8],tickFmt:t=>num(t,0),
+    xTitle:'Difference in recorded revenue per customer, coupon minus control',xTitleS:'Coupon minus control, revenue per customer',showValues:true,valFmt:v=>sg(v),rowH:40,aria:'Segment revenue differences with 95% confidence intervals',
+    rowAria:r=>r.label+', difference '+r.tip[0][1]+', interval '+r.tip[1][1]});
+}
+function segTable(){
+  const tb=$('tbl-seg').querySelector('tbody');clear(tb);let last=null;
+  segRows().forEach(r=>{
+    if(r.dimension!==last){last=r.dimension;const g=h('tr');const c=h('td',{colspan:'10'});c.textContent=DIM_LABEL[r.dimension];c.style.cssText='font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);padding-top:16px';g.append(c);tb.append(g);}
+    const isCart=r.dimension==='cart_last_visit'&&r.segment==='1';
+    const tr=h('tr',isCart?{class:'hl'}:{});
+    const first=td(segLabel(r));first.style.whiteSpace='nowrap';tr.append(first);
+    [[it(r.control_n)],[it(r.treatment_n)],[num(r.control_rpc)],[num(r.treatment_rpc)],[sg(r.rpc_difference)],[sg(r.ci_low)+' to '+sg(r.ci_high)],[pv(r.p_value)],[pv(r.p_holm_12)],[spp(r.purchase_rate_difference)]].forEach(c=>tr.append(td(c[0],'num')));
+    tb.append(tr);
+  });
+}
+function segRender(){segChart.run();segTable();}
+segCtl();segTable();
+(function(){
+  const sums=Object.keys(DIM_LABEL).map(d=>SEG.filter(r=>r.dimension===d).reduce((a,r)=>a+r.control_n+r.treatment_n,0));
+  const ok=sums.every(x=>x===nExp);
+  $('overlap-note').textContent='Each split covers the same '+it(nExp)+' customers ('+(ok?'every split sums to '+it(nExp):'check sums')+'), so a customer appears once in every split. Sample sizes must not be added across splits.';
+})();
+fillBody($('tbl-het'),D.het.map(r=>({cells:[[DIM_LABEL[r.dimension]],[String(r.df),'num'],[num(r.chi_square,2),'num'],[pv(r.p_value),'num'],[pv(r.p_holm_4),'num']]})));
+
+/* ---------- section 5: profit ---------- */
+const pState={pop:'cart_candidate',m:0.5,c:0.1};
+function seg3(boxId,items,get,set){const box=$(boxId);clear(box);items.forEach(([v,l])=>{const b=h('button',{type:'button','aria-pressed':String(get()===v),text:l});b.addEventListener('click',()=>{set(v);pRender();});box.append(b);});}
+function pCtl(){
+  seg3('ctl-pop',[['cart_candidate','Cart abandoners'],['all','All customers']],()=>pState.pop,v=>pState.pop=v);
+  seg3('ctl-margin',MARGINS.map(m=>[m,pc(m,0)]),()=>pState.m,v=>pState.m=v);
+  seg3('ctl-cost',COSTS.map(c=>[c,c===0?'0':c.toFixed(2)]),()=>pState.c,v=>pState.c=v);
+}
+const ACC=[['net_revenue_assumed','A: recorded revenue is after the discount'],['gross_revenue_all_treatment_discounted','B: recorded revenue is before the discount']];
+const popName=p=>p==='all'?'All customers':'Cart abandoners';
+const profChart=register($('chart-profit'),W=>{
+  const rows=ACC.map(([k,l])=>{const r=PROF(pState.pop,k,pState.m,pState.c);return {label:l.split(':')[0]==='A'?'Scenario A':'Scenario B',sub:l.split(': ')[1],est:r.profit_difference,lo:r.ci_low,hi:r.ci_high,
+    color:k==='net_revenue_assumed'?'var(--s1)':'var(--s2)',
+    tipTitle:l,tip:[['Incremental contribution',sg(r.profit_difference)],['95% CI (given assumptions)',sg(r.ci_low)+' to '+sg(r.ci_high)],['Margin',pc(pState.m,0)],['Contact cost',pState.c.toFixed(2)]]};});
+  forest($('chart-profit'),W,rows,{xmin:-4.5,xmax:3.5,ticks:[-4,-3,-2,-1,0,1,2,3],tickFmt:t=>num(t,0),xTitle:'Incremental contribution per assigned customer (recorded revenue units)',xTitleS:'Incremental contribution per customer',showValues:true,valFmt:v=>sg(v),rowH:52,labW:W<640?150:260,aria:'Incremental contribution under two accounting assumptions',rowAria:r=>r.label+' '+r.tip[0][1]});
+});track(profChart);
+function pRender(){
+  pCtl();profChart.run();
+  const rows=ACC.map(([k,l])=>{const r=PROF(pState.pop,k,pState.m,pState.c);return {cells:[[l],[sg(r.profit_difference),'num'],[sg(r.ci_low)+' to '+sg(r.ci_high),'num']]};});
+  fillBody($('tbl-profit'),rows);
+  $('profit-sub').textContent=popName(pState.pop)+' · '+pc(pState.m,0)+' margin · contact cost '+pState.c.toFixed(2)+' per coupon customer. Both scenarios use the same observed revenue; only the accounting assumption differs.';
+  const popRow=pState.pop==='all'?{d:REV.difference}:{d:CART.rpc_difference};
+  const be=pState.m*popRow.d;
+  $('profit-be').textContent=be>0
+    ?'Scenario A at a '+pc(pState.m,0)+' margin: the point estimate would break even at a contact cost of '+num(be)+' per customer. The interval includes losses, so this is not a safe spending limit or a return guarantee.'
+    :'Scenario A at a '+pc(pState.m,0)+' margin: the point estimate for '+popName(pState.pop).toLowerCase()+' is negative before any contact cost, so no positive contact cost breaks even.';
+  sens();
+}
+function tint(v){const a=Math.min(0.38,Math.abs(v)/4*0.38);return 'rgba('+(v>=0?'var(--pos-tint)':'var(--neg-tint)')+','+a.toFixed(3)+')';}
+function sens(){
+  const box=$('sens');clear(box);
+  ACC.forEach(([k,l])=>{
+    const t=h('table');
+    t.append(h('caption',{text:l+' · '+popName(pState.pop)+' · point estimates'}));
+    const hr=h('tr');hr.append(h('th',{text:'Margin \\ contact cost'}));COSTS.forEach(c=>hr.append(h('th',{text:c===0?'0':c.toFixed(2)})));t.append(h('thead',{},hr));
+    const tb=h('tbody');
+    MARGINS.forEach(m=>{const tr=h('tr');tr.append(h('th',{text:pc(m,0)}));COSTS.forEach(c=>{const r=PROF(pState.pop,k,m,c);const cell=h('td',{text:sg(r.profit_difference)});cell.style.background=tint(r.profit_difference);if(Math.abs(m-pState.m)<1e-9&&Math.abs(c-pState.c)<1e-9)cell.className='sel-cell';cell.title='95% CI '+sg(r.ci_low)+' to '+sg(r.ci_high);tr.append(cell);});tb.append(tr);});
+    t.append(tb);box.append(h('div',{class:'card tight'},h('div',{class:'scroll'},t),h('div',{class:'small',style:'margin-top:8px',text:'Blue tint: positive. Red tint: negative. Hover a cell for its interval.'})));
+  });
+}
+(function(){
+  const aPos=cartA.filter(r=>r.profit_difference>0).length,bNeg=cartB.filter(r=>r.profit_difference<0).length;
+  const aCI=cartA.every(r=>r.ci_low<0&&r.ci_high>0);
+  const allNegA=allA.every(r=>r.profit_difference<0),allNegB=allB.every(r=>r.profit_difference<0);
+  $('profit-read').textContent='For cart abandoners, Scenario A gives a positive point estimate in '+aPos+' of '+cartA.length+' margin and cost combinations'+(aCI?', and every interval includes zero':'')+'. Scenario B gives a negative estimate in '+bNeg+' of '+cartB.length+'. For all customers, the estimate is negative in '+(allNegA?'every':'not every')+' Scenario A combination and '+(allNegB?'every':'not every')+' Scenario B combination. The sign for the cart group depends on whether recorded revenue is before or after the discount, which the data does not say.';
+})();
+pRender();
+
+/* ---------- section 6: next campaign ---------- */
+(function(){
+  const order=[['cart','Abandoned cart'],['no_prior_purchase','No prior purchase'],['channel_1','Google (code 1)'],['channel_2','Facebook (code 2)'],['channel_3','Instagram (code 3)'],['channel_4','Referral (code 4)'],['channel_5','Other (code 5)']];
+  const el=$('chart-pop');
+  track(register(el,W=>{
+    const narrow=W<460,labW=narrow?124:158,padR=52,rowH=44,top=6,axisH=40,bh=12,gap=2;
+    const xmax=0.45,x0=labW,x1=W-padR,xs=v=>x0+v/xmax*(x1-x0);
+    const H=top+rowH*order.length+axisH;
+    const svg=s('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H,role:'img','aria-label':'Share of experiment and next-campaign customers in each segment'});
+    (narrow?[0,0.2,0.4]:[0,0.1,0.2,0.3,0.4]).forEach(t=>{svg.append(s('line',{x1:xs(t),x2:xs(t),y1:top,y2:top+rowH*order.length,class:'gl'}));svg.append(s('text',{x:xs(t),y:top+rowH*order.length+16,'text-anchor':'middle',class:'ax'},pc(t,0)));});
+    svg.append(s('text',{x:(x0+x1)/2,y:top+rowH*order.length+34,'text-anchor':'middle',class:'ax'},'Share of population'));
+    order.forEach(([k,l],i)=>{
+      const r=POPCMP[k],y=top+i*rowH,cy=y+rowH/2;
+      const hit=s('rect',{x:0,y,width:W,height:rowH,class:'hit',tabindex:0,role:'img','aria-label':l+': experiment '+pc(r.experiment_share)+', next campaign '+pc(r.next_share),rx:6});svg.append(hit);
+      svg.append(s('text',{x:0,y:cy+4.5,class:'lbl'},l));
+      [['experiment_share','var(--s1)',-bh-gap/2],['next_share','var(--s2)',gap/2]].forEach(([f,c,off])=>{
+        const w=Math.max(1,xs(r[f])-x0),yy=cy+off,rad=4;
+        svg.append(s('path',{d:`M${x0},${yy}H${x0+w-rad}Q${x0+w},${yy} ${x0+w},${yy+rad}V${yy+bh-rad}Q${x0+w},${yy+bh} ${x0+w-rad},${yy+bh}H${x0}Z`,fill:c,'pointer-events':'none'}));
+        svg.append(s('text',{x:x0+w+6,y:yy+bh-2,class:'lbl2','pointer-events':'none'},pc(r[f])));
+      });
+      bindTip(hit,()=>({title:l,lines:[['Experiment share',pc(r.experiment_share)],['Next-campaign share',pc(r.next_share)],['Next-campaign customers',it(r.next_customers)]]}));
+    });
+    el.append(svg);
+  }));
+  fillBody($('tbl-pop'),order.map(([k,l])=>({cells:[[l],[pc(POPCMP[k].experiment_share),'num'],[pc(POPCMP[k].next_share),'num'],[it(POPCMP[k].next_customers),'num']]})));
+  const maxN=Math.max(...D.profile.map(r=>r.customers));
+  const tb=$('tbl-profile').querySelector('tbody');clear(tb);
+  D.profile.forEach(r=>{const tr=h('tr');tr.append(td(CHAN[r.channel_acq]+' (code '+r.channel_acq+')'));tr.append(td(r.purchase_history==='prior_purchaser'?'Prior purchaser':'No prior purchase'));
+    const c=h('td',{class:'num'});c.append(h('span',{class:'inbar',style:'width:'+Math.round(r.customers/maxN*60)+'px'}));c.append(document.createTextNode(it(r.customers)));tr.append(c);
+    tr.append(td(pc(r.population_share),'num'));tr.append(td(pc(r.cart_share),'num'));tr.append(td(num(r.mean_weeks_since_visit,2),'num'));tb.append(tr);});
+  const tot=D.profile.reduce((a,r)=>a+r.customers,0);
+  const trT=h('tr');trT.append(td('Total'));trT.append(td(''));trT.append(td(it(tot),'num'));trT.append(td(pc(tot/nNext),'num'));trT.append(td(''));trT.append(td(''));trT.querySelectorAll('td').forEach(x=>x.style.fontWeight='650');tb.append(trT);
+})();
+
+/* power */
+const pw={p:0.8};
+function pwCtl(){const box=$('ctl-power');clear(box);[[0.8,'80%'],[0.9,'90%']].forEach(([v,l])=>{const b=h('button',{type:'button','aria-pressed':String(pw.p===v),text:l});b.addEventListener('click',()=>{pw.p=v;pwRender();});box.append(b);});}
+const powerChart=register($('chart-power'),W=>{
+  const el=$('chart-power');
+  const N1={all:PWR('all',pw.p,1).total_n,cart:PWR('cart_candidate',pw.p,1).total_n};
+  const AV={all:PWR('all',pw.p,1).available_customers,cart:PWR('cart_candidate',pw.p,1).available_customers};
+  const ME={all:PWR('all',pw.p,1).approximate_mde_with_available,cart:PWR('cart_candidate',pw.p,1).approximate_mde_with_available};
+  const narrow=W<520,l=narrow?52:64,r=narrow?14:112,t=14,b=46,Hp=330,H=t+Hp+b;
+  const xmin=0.4,xmax=5.2,ymin=500,ymax=300000;const xs=v=>l+(v-xmin)/(xmax-xmin)*(W-l-r);const ly=v=>Math.log10(v);const ys=v=>t+Hp-(ly(v)-ly(ymin))/(ly(ymax)-ly(ymin))*Hp;
+  const svg=s('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H,role:'img','aria-label':'Required total sample size versus target effect for all customers and cart abandoners'});
+  [500,1000,2000,5000,10000,20000,50000,100000,200000].forEach(v=>{svg.append(s('line',{x1:l,x2:W-r,y1:ys(v),y2:ys(v),class:'gl'}));svg.append(s('text',{x:l-8,y:ys(v)+4,'text-anchor':'end',class:'ax'},it(v)));});
+  [0.5,1,2,3,4,5].forEach(v=>{svg.append(s('line',{x1:xs(v),x2:xs(v),y1:t,y2:t+Hp,class:'gl'}));svg.append(s('text',{x:xs(v),y:t+Hp+16,'text-anchor':'middle',class:'ax'},'+'+v.toFixed(2)));});
+  svg.append(s('text',{x:(l+W-r)/2,y:H-6,'text-anchor':'middle',class:'ax'},narrow?'Target effect (revenue per customer)':'Target effect: absolute difference in revenue per customer'));
+  const curve=(N)=>{let d='';for(let v=xmin;v<=xmax+1e-9;v+=0.05){d+=(d?'L':'M')+xs(v).toFixed(1)+','+ys(N/(v*v)).toFixed(1);}return d;};
+  const defs=[['all','var(--s1)','All customers'],['cart','var(--s2)','Cart abandoners']];
+  defs.forEach(([k,c,name])=>{
+    svg.append(s('line',{x1:l,x2:W-r,y1:ys(AV[k]),y2:ys(AV[k]),stroke:c,'stroke-width':1,opacity:.55}));
+    if(!narrow)svg.append(s('text',{x:W-r+6,y:ys(AV[k])+4,class:'lbl2'},it(AV[k])+' available'));
+    svg.append(s('path',{d:curve(N1[k]),fill:'none',stroke:c,'stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    if(!narrow)svg.append(s('text',{x:W-r+6,y:ys(N1[k]/(xmax*xmax))+4,class:'lbl'},name));
+    [0.5,1,2].forEach(v=>{const row=PWR(k==='all'?'all':'cart_candidate',pw.p,v);svg.append(s('circle',{cx:xs(v),cy:ys(row.total_n),r:4,fill:c,stroke:'var(--surface)','stroke-width':2}));});
+    const me=ME[k];svg.append(s('circle',{cx:xs(me),cy:ys(AV[k]),r:5,fill:'var(--surface)',stroke:c,'stroke-width':2.5}));
+    const left=k==='all';
+    svg.append(s('text',{x:left?xs(me)-10:xs(me)+10,y:ys(AV[k])+17,'text-anchor':left?'end':'start',class:'val'},'+'+me.toFixed(2)));
+  });
+  const cross=s('line',{y1:t,y2:t+Hp,class:'zl',style:'display:none','pointer-events':'none'});svg.append(cross);
+  const hit=s('rect',{x:l,y:t,width:W-l-r,height:Hp,fill:'transparent'});svg.append(hit);
+  hit.addEventListener('pointermove',e=>{const bb=svg.getBoundingClientRect();const px=(e.clientX-bb.left)*(W/bb.width);let v=xmin+(px-l)/(W-l-r)*(xmax-xmin);v=Math.max(xmin,Math.min(xmax,Math.round(v*20)/20));cross.setAttribute('x1',xs(v));cross.setAttribute('x2',xs(v));cross.style.display='block';
+    showTip(e.clientX,e.clientY,'Target effect +'+v.toFixed(2),[['All customers (approx.)',it(Math.ceil(N1.all/(v*v)))],['Cart abandoners (approx.)',it(Math.ceil(N1.cart/(v*v)))],['Available: all / cart',it(AV.all)+' / '+it(AV.cart)]]);});
+  hit.addEventListener('pointerleave',()=>{cross.style.display='none';hideTip();});
+  el.append(svg);
+});track(powerChart);
+function pwRender(){
+  pwCtl();powerChart.run();
+  const mdes=[0.5,1,2];
+  fillBody($('tbl-power'),mdes.map(m=>{const a=PWR('all',pw.p,m),c=PWR('cart_candidate',pw.p,m);
+    return {cells:[['+'+m.toFixed(2),'num'],[it(a.total_n),'num'],[a.feasible?'Fits':'Exceeds'],[it(c.total_n),'num'],[c.feasible?'Fits':'Exceeds'],[(c.total_n/c.available_customers).toFixed(1)+'×','num']]};}));
+  const a=PWR('all',pw.p,1),c=PWR('cart_candidate',pw.p,1);
+  const box=$('mde-tiles');clear(box);
+  [['All customers',a],['Cart abandoners',c]].forEach(([n,r])=>box.append(h('div',{class:'card tile'},h('div',{class:'lab',text:n+': smallest detectable effect with the customers available'}),h('div',{class:'val',text:'+'+r.approximate_mde_with_available.toFixed(2)}),h('div',{class:'sub',text:'with '+it(r.available_customers)+' customers at '+Math.round(pw.p*100)+'% power'}))));
+  const c80=PWR('cart_candidate',0.8,1),c80b=PWR('cart_candidate',0.8,2),c80c=PWR('cart_candidate',0.8,0.5);
+  const base=CART.control_rpc;
+  $('power-read').textContent='For cart abandoners at 80% power, a target of +2.00 needs '+it(c80b.total_n)+' customers, +1.00 needs '+it(c80.total_n)+', and +0.50 needs '+it(c80c.total_n)+'. The '+it(cartNext)+' available can detect about +'+c80.approximate_mde_with_available.toFixed(2)+', which is '+(c80.approximate_mde_with_available/base*100).toFixed(0)+'% of the control group mean of '+num(base)+' per customer in this segment (+1.00 would be '+(100/base).toFixed(1)+'%). The planning question is therefore the smallest effect worth acting on. Margin, contact cost, and discount set that number, and it sets the sample size. The observed '+sg(CART.rpc_difference)+' should not set it, because it is a selected and imprecise estimate. Levers are a larger pool of eligible customers or a longer enrollment period, a larger minimum effect, or lower outcome variance (not tested here).';
+}
+pwRender();
+
+/* ---------- appendix ---------- */
+fillBody($('tbl-dq'),D.dq.map(r=>({cells:[[r.source==='ab_test'?'Experiment (ab_test)':'Next campaign (next_campaign)'],[it(r.rows),'num'],[it(r.distinct_customers),'num'],[String(r.missing_core),'num'],[String(r.invalid_core),'num'],[r.revenue_without_transaction==null?'not applicable':String(r.revenue_without_transaction),'num']]})));
+const BAL_LABEL={num_past_purch:'Past purchases (count)',spent_last_purchase:'Spend on last purchase',weeks_since_visit:'Weeks since last visit',browsing_minutes:'Browsing minutes',shopping_cart:'Abandoned cart (share)',channel_1:'Google channel (share)',channel_2:'Facebook channel (share)',channel_3:'Instagram channel (share)',channel_4:'Referral channel (share)',channel_5:'Other channel (share)'};
+(function(){
+  const el=$('chart-balance');
+  track(register(el,W=>{
+    const rows=D.balance.map(r=>({label:BAL_LABEL[r.variable]||r.variable,est:r.standardized_difference,tipTitle:BAL_LABEL[r.variable]||r.variable,tip:[['Standardized difference',sg(r.standardized_difference)],['Control mean',num(r.control_mean)],['Coupon mean',num(r.treatment_mean)]]}));
+    forest(el,W,rows,{xmin:-0.1,xmax:0.1,ticks:[-0.1,-0.05,0,0.05,0.1],tickFmt:t=>num(t,2),xTitle:'Standardized difference, coupon minus control',xTitleS:'Standardized difference',showValues:true,rightW:70,valFmt:v=>sg(v),rowH:30,labW:W<640?150:230,aria:'Baseline standardized differences',rowAria:r=>r.label+' '+r.tip[0][1]});
+  }));
+  fillBody($('tbl-balance'),D.balance.map(r=>({cells:[[BAL_LABEL[r.variable]||r.variable],[num(r.control_mean),'num'],[num(r.treatment_mean),'num'],[sg(r.standardized_difference),'num']]})));
+})();
+document.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>charts.forEach(c=>{if(c.el.clientWidth>0&&c.el.clientWidth!==c.w)c.run();})));
+</script>
+</body>
+</html>
